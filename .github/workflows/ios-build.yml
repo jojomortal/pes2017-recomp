@@ -19,7 +19,7 @@ jobs:
         with:
           vulkan_version: latest
 
-      - name: Bypass Media, Stubs and Android Audio
+      - name: Bypass Media, Stubs and Android Drivers
         run: |
           echo "Criando stubs simulações em todas as variações de pastas para garantir compatibilidade..."
           mkdir -p pes2017-recomp/ppc
@@ -32,12 +32,11 @@ jobs:
           mkdir -p pes
           mkdir -p build_ios
           
-          # Gera os arquivos simulados exigidos pelo CMake e injeta as estruturas de hardware
+          # Gera os arquivos simulados exigidos pelo CMake
           for dir in "ppc" "pes2017-recomp/ppc" "pes2017_recomp/ppc" "pes2017-recomp/pes2017-recomp/ppc" "pes2017-recomp/pes2017_recomp/ppc" "pes2017_recomp/pes2017-recomp/ppc" "pes2017_recomp/pes2017_recomp/ppc"; do
             echo "// Mock" > "$dir/ppc_func_mapping.cpp"
             echo "// Mock" > "$dir/stubs_generated.cpp"
             
-            # INJEÇÃO DO PPC_RECOMP_SHARED.H
             echo "#ifndef PPC_RECOMP_SHARED_H" > "$dir/ppc_recomp_shared.h"
             echo "#define PPC_RECOMP_SHARED_H" >> "$dir/ppc_recomp_shared.h"
             echo "#include <stdint.h>" >> "$dir/ppc_recomp_shared.h"
@@ -50,10 +49,8 @@ jobs:
             echo "typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);" >> "$dir/ppc_recomp_shared.h"
             echo "#endif" >> "$dir/ppc_recomp_shared.h"
 
-            # INJEÇÃO DO PPC_CONFIG.H (NOVA CORREÇÃO)
             echo "#ifndef PPC_CONFIG_H" > "$dir/ppc_config.h"
             echo "#define PPC_CONFIG_H" >> "$dir/ppc_config.h"
-            echo "// Configurações simuladas de runtime limpa" >> "$dir/ppc_config.h"
             echo "#endif" >> "$dir/ppc_config.h"
           done
           
@@ -62,8 +59,9 @@ jobs:
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(SEND_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message("pes\/default.xex is missing/message(STATUS "pes\/default.xex is missing/g' {} + || true
 
-          echo "Desativando o arquivo de áudio nativo do Android para forçar o backend SDL3 no iOS..."
-          find . -name "audio.cpp" -exec sh -c 'echo "// Desativado para o build iOS nativo em Metal" > "{}"' \;
+          echo "Desativando dependências de áudio nativo Android e relatórios de crash de baixo nível..."
+          find . -name "audio.cpp" -exec sh -c 'echo "// Desativado para o build iOS" > "{}"' \;
+          find . -name "crash.cpp" -exec sh -c 'echo "// Desativado para evitar travas de baixo nivel no iOS" > "{}"' \;
 
       - name: Configure CMake for iOS Project
         run: |
