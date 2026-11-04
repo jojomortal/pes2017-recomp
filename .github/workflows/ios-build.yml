@@ -49,15 +49,8 @@ jobs:
       - name: Compile and Archive App
         run: |
           cd build_ios
-          # Correção: Alterado o esquema para o padrão esperado pelo Xcode do projeto
-          xcodebuild archive \
-            -project *.xcodeproj \
-            -scheme pes2017recomp \
-            -configuration Release \
-            -archivePath ./build/pes2017.xcarchive \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+          # Mudança temporária: Listar todos os esquemas reais criados para que possamos ver o nome correto
+          xcodebuild -list -project *.xcodeproj
 
       - name: Package into Unsigned IPA
         run: |
