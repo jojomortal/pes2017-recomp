@@ -32,16 +32,15 @@ jobs:
             set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -flto -DNDEBUG")\
           endif()' CMakeLists.txt
 
-          # CORREÇÃO CIRÚRGICA DE ESCOPO: Injeta variáveis locais apenas nas funções que precisam delas
+          # CORREÇÃO CIRÚRGICA CLASSE-NÍVEL: Injeta referências internas dentro da struct para d1
           TARGET_HEADER="runtime/gpu/texture.h"
           if [ -f "$TARGET_HEADER" ]; then
-            echo "Aplicando correção local de escopo em $TARGET_HEADER..."
+            echo "Aplicando injeção de escopo de classe em $TARGET_HEADER..."
             
-            # Injeta definições locais de segurança bem no início das leituras problemáticas de textura
-            sed -i '' 's/TextureEndian Endian() const {/TextureEndian Endian() const { auto\& d = d1; auto\& df = d1;/g' "$TARGET_HEADER" 2>/dev/null || true
-            sed -i '' 's/bool Stacked() const {/bool Stacked() const { auto\& d = d1; auto\& df = d1;/g' "$TARGET_HEADER" 2>/dev/null || true
-            sed -i '' 's/uint32_t BaseAddress() const {/uint32_t BaseAddress() const { auto\& d = d1; auto\& df = d1;/g' "$TARGET_HEADER" 2>/dev/null || true
-            sed -i '' 's/uint32_t Pitch() const {/uint32_t Pitch() const { auto\& d = d1; auto\& df = d1;/g' "$TARGET_HEADER" 2>/dev/null || true
+            # Localiza a variável d1 existente no arquivo e cria referências locais 'd' e 'df' logo abaixo dela
+            sed -i '' '/uint32_t d1\[/a\
+            const uint32_t (\&d)\[4\] = d1;\nconst uint32_t (\&df)\[4\] = d1;\
+            ' "$TARGET_HEADER" 2>/dev/null || true
           fi
 
       - name: Pre-generate Recompilation Files
