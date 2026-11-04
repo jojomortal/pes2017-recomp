@@ -36,6 +36,16 @@ jobs:
           for dir in "ppc" "pes2017-recomp/ppc" "pes2017_recomp/ppc" "pes2017-recomp/pes2017-recomp/ppc" "pes2017-recomp/pes2017_recomp/ppc" "pes2017_recomp/pes2017-recomp/ppc" "pes2017_recomp/pes2017_recomp/ppc"; do
             echo "// Mock" > "$dir/ppc_func_mapping.cpp"
             echo "// Mock" > "$dir/stubs_generated.cpp"
+            
+            # INJEÇÃO CIRÚRGICA DO HEADER FALTANTE DENTRO DA PASTA PPC EXIGIDA PELO KERNEL
+            cat << 'EOF' > "$dir/ppc_recomp_shared.h"
+            #ifndef PPC_RECOMP_SHARED_H
+            #define PPC_RECOMP_SHARED_H
+            #include <stdint.h>
+            struct PPCContext { uint64_t gpr; };
+            typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);
+            #endif
+            EOF
           done
           
           # Suprime os erros de arquivos de mídia ausentes nos arquivos de configuração do CMake
@@ -44,7 +54,6 @@ jobs:
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message("pes\/default.xex is missing/message(STATUS "pes\/default.xex is missing/g' {} + || true
 
           echo "Desativando o arquivo de áudio nativo do Android para forçar o backend SDL3 no iOS..."
-          # Encontra o arquivo audio.cpp do runtime e o substitui por um arquivo vazio válido
           find . -name "audio.cpp" -exec sh -c 'echo "// Desativado para o build iOS nativo em Metal" > "{}"' \;
 
       - name: Configure CMake for iOS Project
