@@ -32,7 +32,7 @@ jobs:
           mkdir -p pes
           mkdir -p build_ios
           
-          # Gera os arquivos simulados exigidos pelo CMake
+          # Gera os arquivos simulados exigidos pelo CMake e estruturas de hardware
           for dir in "ppc" "pes2017-recomp/ppc" "pes2017_recomp/ppc" "pes2017-recomp/pes2017-recomp/ppc" "pes2017-recomp/pes2017_recomp/ppc" "pes2017_recomp/pes2017-recomp/ppc" "pes2017_recomp/pes2017_recomp/ppc"; do
             echo "// Mock" > "$dir/ppc_func_mapping.cpp"
             echo "// Mock" > "$dir/stubs_generated.cpp"
@@ -47,6 +47,10 @@ jobs:
             echo "    PPCReg lr; PPCReg ctr; PPCReg xer; PPCReg fpscr;" >> "$dir/ppc_recomp_shared.h"
             echo "};" >> "$dir/ppc_recomp_shared.h"
             echo "typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);" >> "$dir/ppc_recomp_shared.h"
+            
+            # INJEÇÃO DA FUNÇÃO DE TEMPO EXIGIDA PELO PROCESSO GRÁFICO (COMMAND PROCESSOR)
+            echo "static inline uint64_t PPC_QueryTimeBase() { return 0; }" >> "$dir/ppc_recomp_shared.h"
+            
             echo "#endif" >> "$dir/ppc_recomp_shared.h"
 
             echo "#ifndef PPC_CONFIG_H" > "$dir/ppc_config.h"
