@@ -1,7 +1,7 @@
-name: Build iOS App
+name: build-ios
 
 on:
-  workflow_dispatch: # Permite que você ative o build manualmente pelo botão no GitHub
+  workflow_dispatch:
 
 jobs:
   build-ios:
@@ -16,8 +16,8 @@ jobs:
 
       - name: Install Vulkan SDK
         run: |
-          echo "Instalando o Vulkan SDK para corrigir o erro vulkan.h..."
-          brew install vulkan-sdk
+          echo "Instalando os componentes do Vulkan SDK para macOS..."
+          brew install --cask vulkan-sdk
 
       - name: Configure CMake for iOS Project
         run: |
