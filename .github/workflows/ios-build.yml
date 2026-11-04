@@ -26,7 +26,10 @@ jobs:
           cmake .. \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_SYSROOT=iphoneos \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release \
+            -DRECOMP_CLEAN_BUILD=ON \
+            -DCMAKE_C_FLAGS="-O3 -ffast-math" \
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math"
 
       - name: Compile and Archive App
         run: |
@@ -51,4 +54,4 @@ jobs:
 
       - name: Post Code Checkout
         run: |
-          echo "Processo finalizado com sucesso!"
+          echo "Processo finalizado com sucesso de forma totalmente legal!"
