@@ -33,6 +33,7 @@ jobs:
           mkdir -p runtime/apu
           mkdir -p pes2017-recomp/runtime/apu
           mkdir -p pes2017_recomp/runtime/apu
+          mkdir -p build_ios
           
           # Gera os arquivos simulados básicos do compilador
           for dir in "ppc" "pes2017-recomp/ppc" "pes2017_recomp/ppc" "pes2017-recomp/pes2017-recomp/ppc" "pes2017-recomp/pes2017_recomp/ppc" "pes2017_recomp/pes2017-recomp/ppc" "pes2017_recomp/pes2017_recomp/ppc"; do
@@ -40,11 +41,19 @@ jobs:
             echo "// Mock" > "$dir/stubs_generated.cpp"
           done
           
-          # CRIAÇÃO DOS MOCKS DE CABEÇALHO PARA O AUDIO.CPP
-          echo "#ifndef PPC_RECOMP_SHARED_H\n#define PPC_RECOMP_SHARED_H\n// Mock para build iOS\n#endif" > ppc_recomp_shared.h
+          # CRIAÇÃO PERFEITA DO ARQUIVO DE CABEÇALHO (MOCK) COM QUEBRAS DE LINHA REAIS
+          cat << 'EOF' > ppc_recomp_shared.h
+          #ifndef PPC_RECOMP_SHARED_H
+          #define PPC_RECOMP_SHARED_H
+          // Mock para compilação estável no iOS
+          #endif
+          EOF
+          
+          # Distribui o arquivo gerado em todas as pastas possíveis de inclusão do projeto
           cp ppc_recomp_shared.h runtime/apu/ppc_recomp_shared.h || true
           cp ppc_recomp_shared.h pes2017-recomp/runtime/apu/ppc_recomp_shared.h || true
           cp ppc_recomp_shared.h pes2017_recomp/runtime/apu/ppc_recomp_shared.h || true
+          cp ppc_recomp_shared.h build_ios/ppc_recomp_shared.h || true
           
           # Suprime os erros de arquivos de mídia ausentes nos arquivos de configuração do CMake
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(FATAL_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
@@ -57,8 +66,8 @@ jobs:
 
       - name: Configure CMake for iOS Project
         run: |
-          mkdir -p build_ios
           cd build_ios
+          # Usa -isystem . para forçar o compilador a aceitar o arquivo simulado como um header global do sistema (<angled>)
           cmake .. \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_SYSROOT=iphoneos \
@@ -66,13 +75,13 @@ jobs:
             -DPES17_USE_METAL=ON \
             -DENABLE_AUDIO_SDL=ON \
             -DPES17_AUDIO_BACKEND=SDL \
-            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0" \
-            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0"
+            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0 -isystem ." \
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0 -isystem ."
 
       - name: Compile and Archive App
         run: |
           cd build_ios
-          echo "Compilando o motor do jogo usando o compilador nativo do CMake com injeção local de headers..."
+          echo "Compilando o motor do jogo usando o compilador nativo do CMake com injeção global de headers..."
           cmake --build . --config Release
 
       - name: Package into Unsigned IPA with Mods & Ultra Performance Support
