@@ -32,11 +32,12 @@ jobs:
           mkdir -p pes
           mkdir -p build_ios
           
-          # Gera os arquivos simulados exigidos pelo CMake e injeta o header estruturado com suporte a união .u32/.u64
+          # Gera os arquivos simulados exigidos pelo CMake e injeta as estruturas de hardware
           for dir in "ppc" "pes2017-recomp/ppc" "pes2017_recomp/ppc" "pes2017-recomp/pes2017-recomp/ppc" "pes2017-recomp/pes2017_recomp/ppc" "pes2017_recomp/pes2017-recomp/ppc" "pes2017_recomp/pes2017_recomp/ppc"; do
             echo "// Mock" > "$dir/ppc_func_mapping.cpp"
             echo "// Mock" > "$dir/stubs_generated.cpp"
             
+            # INJEÇÃO DO PPC_RECOMP_SHARED.H
             echo "#ifndef PPC_RECOMP_SHARED_H" > "$dir/ppc_recomp_shared.h"
             echo "#define PPC_RECOMP_SHARED_H" >> "$dir/ppc_recomp_shared.h"
             echo "#include <stdint.h>" >> "$dir/ppc_recomp_shared.h"
@@ -48,6 +49,12 @@ jobs:
             echo "};" >> "$dir/ppc_recomp_shared.h"
             echo "typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);" >> "$dir/ppc_recomp_shared.h"
             echo "#endif" >> "$dir/ppc_recomp_shared.h"
+
+            # INJEÇÃO DO PPC_CONFIG.H (NOVA CORREÇÃO)
+            echo "#ifndef PPC_CONFIG_H" > "$dir/ppc_config.h"
+            echo "#define PPC_CONFIG_H" >> "$dir/ppc_config.h"
+            echo "// Configurações simuladas de runtime limpa" >> "$dir/ppc_config.h"
+            echo "#endif" >> "$dir/ppc_config.h"
           done
           
           # Suprime os erros de arquivos de mídia ausentes nos arquivos de configuração do CMake
