@@ -1,0 +1,62 @@
+name: Build PES 2017 iOS (Unsigned)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-14
+    
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install System Dependencies
+        run: |
+          brew install cmake ninja vulkan-sdk
+
+      - name: Inject iOS Target into CMake
+        run: |
+          sed -i '' '/project(/a\
+          if(APPLE)\
+            set(CMAKE_XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")\
+            set(CMAKE_OSX_DEPLOYMENT_TARGET "17.0")\
+            set(CMAKE_OSX_ARCHITECTURES "arm64")\
+          endif()' CMakeLists.txt
+
+      - name: Configure CMake for iOS Project
+        run: |
+          mkdir build_ios
+          cd build_ios
+          cmake .. -G Xcode \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 \
+            -DCMAKE_OSX_ARCHITECTURES=arm64
+
+      - name: Compile and Archive App
+        run: |
+          cd build_ios
+          xcodebuild archive \
+            -project *.xcodeproj \
+            -scheme pes2017_launcher \
+            -configuration Release \
+            -archivePath ./build/pes2017.xcarchive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Package into Unsigned IPA
+        run: |
+          cd build_ios
+          mkdir -p Payload
+          cp -R ./build/pes2017.xcarchive/Products/Applications/*.app ./Payload/
+          zip -r pes2017-ios-unsigned.ipa Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pes2017-ios-unsigned
+          path: build_ios/pes2017-ios-unsigned.ipa
+          retention-days: 7
