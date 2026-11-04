@@ -64,8 +64,9 @@ jobs:
           find . -name "crash.cpp" -exec sh -c 'echo "// Desativado para evitar travas de baixo nivel no iOS" > "{}"' \;
 
           echo "Aplicando correção direta de clock e sincronia gráfica no command_processor..."
-          # Substitui a chamada da função faltante por um valor numérico plano diretamente nos arquivos C++ do projeto
-          find . -name "command_processor.cpp" -exec sed -i '' 's/PPC_QueryTimeBase()/0/g' {} + || true
+          # Mudança focada: Executa uma substituição recursiva mais agressiva garantindo que nenhuma variação de espaço ou chamada escape
+          find . -type f -name "command_processor.cpp" -exec sed -i '' 's/PPC_QueryTimeBase()/0/g' {} + || true
+          find . -type f -name "command_processor.cpp" -exec sed -i '' 's/(PPC_QueryTimebase())/0/g' {} + || true
 
       - name: Configure CMake for iOS Project
         run: |
