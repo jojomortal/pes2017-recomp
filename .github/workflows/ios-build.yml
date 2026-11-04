@@ -40,6 +40,12 @@ jobs:
             echo "#ifndef PPC_RECOMP_SHARED_H" > "$dir/ppc_recomp_shared.h"
             echo "#define PPC_RECOMP_SHARED_H" >> "$dir/ppc_recomp_shared.h"
             echo "#include <stdint.h>" >> "$dir/ppc_recomp_shared.h"
+            
+            # Adicionadas as macros cruciais exigidas pelas funções de hooks gráficos (d3d_hooks.cpp)
+            echo "#define PPC_FUNC_IMPL(name) void name(struct PPCContext* ctx, uint32_t address)" >> "$dir/ppc_recomp_shared.h"
+            echo "#define GUEST_HOOK(name) extern void name(struct PPCContext* ctx, uint32_t address);" >> "$dir/ppc_recomp_shared.h"
+            echo "#define GUEST_ORIG(name) name" >> "$dir/ppc_recomp_shared.h"
+            
             echo "typedef union { uint64_t u64; uint32_t u32; } PPCReg;" >> "$dir/ppc_recomp_shared.h"
             echo "struct PPCContext {" >> "$dir/ppc_recomp_shared.h"
             echo "    PPCReg r1; PPCReg r2; PPCReg r3; PPCReg r4; PPCReg r5;" >> "$dir/ppc_recomp_shared.h"
@@ -64,7 +70,6 @@ jobs:
           find . -name "crash.cpp" -exec sh -c 'echo "// Desativado para evitar travas de baixo nivel no iOS" > "{}"' \;
 
           echo "Injetando definições de compatibilidade funcional diretamente no topo do command_processor..."
-          # Altera a macro para aceitar parênteses vazios () e retornar 0 de forma estruturada para o C++
           find . -type f -name "command_processor.cpp" -exec sed -i '' '1i\
           #define PPC_QueryTimeBase() 0\
           #define PPC_QueryTimebase() 0\
