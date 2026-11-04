@@ -30,12 +30,23 @@ jobs:
           mkdir -p pes2017_recomp/pes2017_recomp/ppc
           mkdir -p ppc
           mkdir -p pes
+          mkdir -p runtime/apu
+          mkdir -p pes2017-recomp/runtime/apu
+          mkdir -p pes2017_recomp/runtime/apu
           
+          # Gera os arquivos simulados básicos do compilador
           for dir in "ppc" "pes2017-recomp/ppc" "pes2017_recomp/ppc" "pes2017-recomp/pes2017-recomp/ppc" "pes2017-recomp/pes2017_recomp/ppc" "pes2017_recomp/pes2017-recomp/ppc" "pes2017_recomp/pes2017_recomp/ppc"; do
             echo "// Mock" > "$dir/ppc_func_mapping.cpp"
             echo "// Mock" > "$dir/stubs_generated.cpp"
           done
           
+          # CRIAÇÃO DOS MOCKS DE CABEÇALHO PARA O AUDIO.CPP
+          echo "#ifndef PPC_RECOMP_SHARED_H\n#define PPC_RECOMP_SHARED_H\n// Mock para build iOS\n#endif" > ppc_recomp_shared.h
+          cp ppc_recomp_shared.h runtime/apu/ppc_recomp_shared.h || true
+          cp ppc_recomp_shared.h pes2017-recomp/runtime/apu/ppc_recomp_shared.h || true
+          cp ppc_recomp_shared.h pes2017_recomp/runtime/apu/ppc_recomp_shared.h || true
+          
+          # Suprime os erros de arquivos de mídia ausentes nos arquivos de configuração do CMake
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(FATAL_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(SEND_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message("pes\/default.xex is missing/message(STATUS "pes\/default.xex is missing/g' {} + || true
@@ -43,18 +54,6 @@ jobs:
           echo "Ajustando drivers de áudio para compatibilidade nativa com iOS..."
           find . -type f \( -name "*.cpp" -o -name "*.h" \) -exec sed -i '' 's|<aaudio/AAudio.h>|// No AAudio|g' {} + || true
           find . -type f \( -name "*.cpp" -o -name "*.h" \) -exec sed -i '' 's|<oboe/Oboe.h>|// No Oboe|g' {} + || true
-
-          echo "Injetando fisicamente os cabeçalhos essenciais do recompilador nas pastas alvo..."
-          # Localiza os arquivos originais do repositório clonado e copia para as pastas de compilação
-          find . -name "ppc_recomp_shared.h" -exec cp {} ./ \; || true
-          find . -name "ppc_recomp_shared.h" -exec cp {} ./runtime/apu/ \; || true
-          find . -name "ppc_recomp_shared.h" -exec cp {} ./pes2017-recomp/runtime/apu/ \; || true
-          find . -name "ppc_recomp_shared.h" -exec cp {} ./pes2017_recomp/runtime/apu/ \; || true
-          
-          # Garante o transporte de definições auxiliares de tipos gráficos se necessário
-          find . -name "recomp_types.h" -exec cp {} ./runtime/apu/ \; || true 2>/dev/null
-          find . -name "recomp_types.h" -exec cp {} ./pes2017-recomp/runtime/apu/ \; || true 2>/dev/null
-          find . -name "recomp_types.h" -exec cp {} ./pes2017_recomp/runtime/apu/ \; || true 2>/dev/null
 
       - name: Configure CMake for iOS Project
         run: |
