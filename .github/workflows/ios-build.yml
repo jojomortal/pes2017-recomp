@@ -44,17 +44,22 @@ jobs:
           find . -type f \( -name "*.cpp" -o -name "*.h" \) -exec sed -i '' 's|<aaudio/AAudio.h>|// No AAudio|g' {} + || true
           find . -type f \( -name "*.cpp" -o -name "*.h" \) -exec sed -i '' 's|<oboe/Oboe.h>|// No Oboe|g' {} + || true
 
+          echo "Injetando fisicamente os cabeçalhos essenciais do recompilador nas pastas alvo..."
+          # Localiza os arquivos originais do repositório clonado e copia para as pastas de compilação
+          find . -name "ppc_recomp_shared.h" -exec cp {} ./ \; || true
+          find . -name "ppc_recomp_shared.h" -exec cp {} ./runtime/apu/ \; || true
+          find . -name "ppc_recomp_shared.h" -exec cp {} ./pes2017-recomp/runtime/apu/ \; || true
+          find . -name "ppc_recomp_shared.h" -exec cp {} ./pes2017_recomp/runtime/apu/ \; || true
+          
+          # Garante o transporte de definições auxiliares de tipos gráficos se necessário
+          find . -name "recomp_types.h" -exec cp {} ./runtime/apu/ \; || true 2>/dev/null
+          find . -name "recomp_types.h" -exec cp {} ./pes2017-recomp/runtime/apu/ \; || true 2>/dev/null
+          find . -name "recomp_types.h" -exec cp {} ./pes2017_recomp/runtime/apu/ \; || true 2>/dev/null
+
       - name: Configure CMake for iOS Project
         run: |
           mkdir -p build_ios
           cd build_ios
-          
-          # Define caminhos estáticos baseados na estrutura padrão do repositório
-          ROOT_DIR="${{ github.workspace }}"
-          UTILS_PATH="${ROOT_DIR}/third_party/XenonRecomp/XenonUtils"
-          RECOMP_PATH="${ROOT_DIR}/third_party/XenonRecomp/XenonRecomp"
-          THIRD_PATH="${ROOT_DIR}/third_party/XenonRecomp/thirdparty"
-          
           cmake .. \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_SYSROOT=iphoneos \
@@ -62,14 +67,13 @@ jobs:
             -DPES17_USE_METAL=ON \
             -DENABLE_AUDIO_SDL=ON \
             -DPES17_AUDIO_BACKEND=SDL \
-            -DCMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES="${UTILS_PATH};${RECOMP_PATH};${THIRD_PATH}" \
-            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0 -I${UTILS_PATH} -I${RECOMP_PATH} -I${THIRD_PATH}" \
-            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0 -I${UTILS_PATH} -I${RECOMP_PATH} -I${THIRD_PATH}"
+            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0" \
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0"
 
       - name: Compile and Archive App
         run: |
           cd build_ios
-          echo "Compilando o motor do jogo usando o compilador nativo do CMake com mapeamento estático..."
+          echo "Compilando o motor do jogo usando o compilador nativo do CMake com injeção local de headers..."
           cmake --build . --config Release
 
       - name: Package into Unsigned IPA with Mods & Ultra Performance Support
