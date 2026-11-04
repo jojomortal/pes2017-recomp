@@ -48,8 +48,8 @@ jobs:
             echo "};" >> "$dir/ppc_recomp_shared.h"
             echo "typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);" >> "$dir/ppc_recomp_shared.h"
             
-            # INJEÇÃO DA FUNÇÃO DE TEMPO EXIGIDA PELO PROCESSO GRÁFICO (COMMAND PROCESSOR)
-            echo "static inline uint64_t PPC_QueryTimeBase() { return 0; }" >> "$dir/ppc_recomp_shared.h"
+            # SUBSTITUIÇÃO CIRÚRGICA VIA MACRO GLOBAL DO COMPILADOR
+            echo "#define PPC_QueryTimeBase() (0ULL)" >> "$dir/ppc_recomp_shared.h"
             
             echo "#endif" >> "$dir/ppc_recomp_shared.h"
 
