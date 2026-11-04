@@ -53,10 +53,18 @@ jobs:
       - name: Compile and Archive App
         run: |
           cd build_ios
-          # Correção: Mantido apenas o esquema validado, aplicando as otimizações de codificação
+          
+          # 1. Lista explicitamente os esquemas reais criados no log para auditoria
+          xcodebuild -list -project *.xcodeproj
+          
+          # 2. Descobre automaticamente o nome do esquema principal gerado pelo CMake (ignora ALL_BUILD)
+          REAL_SCHEME=$(xcodebuild -list -project *.xcodeproj | grep -E "Schemes:" -A 10 | tail -n +2 | sed 's/^[[:space:]]*//' | grep -v "ALL_BUILD" | head -n 1)
+          echo "Esquema autodetectado para compilação: '$REAL_SCHEME'"
+          
+          # 3. Executa a compilação usando o esquema descoberto e mantendo as otimizações agressivas
           xcodebuild archive \
             -project *.xcodeproj \
-            -scheme pes2017recomp \
+            -scheme "$REAL_SCHEME" \
             -configuration Release \
             -archivePath ./build/pes2017.xcarchive \
             CODE_SIGN_IDENTITY="" \
