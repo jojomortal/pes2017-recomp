@@ -49,14 +49,30 @@ jobs:
       - name: Compile and Archive App
         run: |
           cd build_ios
-          # Mudança temporária: Listar todos os esquemas reais criados para que possamos ver o nome correto
-          xcodebuild -list -project *.xcodeproj
+          xcodebuild archive \
+            -project *.xcodeproj \
+            -scheme pes2017recomp \
+            -configuration Release \
+            -archivePath ./build/pes2017.xcarchive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
 
       - name: Package into Unsigned IPA
         run: |
           cd build_ios
           mkdir -p Payload
-          cp -R ./build/pes2017.xcarchive/Products/Applications/*.app ./Payload/
+          
+          # Correção do caminho: Localiza o arquivo .app gerado pelo Xcode e copia para o pacote
+          cp -R ./build/pes2017.xcarchive/Products/Library/Frameworks/*.framework ./Payload/ 2>/dev/null || true
+          cp -R ./build/pes2017.xcarchive/Products/Applications/*.app ./Payload/ 2>/dev/null || cp -R ./build/pes2017.xcarchive/Products/usr/local/bin/*.app ./Payload/ 2>/dev/null || cp -R Release-iphoneos/*.app ./Payload/ 2>/dev/null || find . -name "*.app" -exec cp -R {} ./Payload/ \;
+          
+          # PREPARAÇÃO PARA MODS: Cria a estrutura de pastas internas para patches e arquivos .cpk customizados
+          mkdir -p Payload/*.app/download
+          mkdir -p Payload/*.app/mods
+          touch Payload/*.app/download/mod_placeholder.txt
+          
+          # Compacta tudo no arquivo final .ipa
           zip -r pes2017-ios-unsigned.ipa Payload
 
       - name: Upload IPA Artifact
