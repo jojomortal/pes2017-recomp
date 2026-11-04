@@ -32,7 +32,7 @@ jobs:
 
       - name: Pre-generate Recompilation Files
         run: |
-          # Correção: Força a criação das pastas e arquivos diretamente na raiz esperada pelo CMake
+          # Força a criação das pastas e arquivos diretamente na raiz esperada pelo CMake
           mkdir -p ppc
           touch ppc/ppc_func_mapping.cpp
           touch ppc/stubs_generated.cpp
@@ -49,9 +49,10 @@ jobs:
       - name: Compile and Archive App
         run: |
           cd build_ios
+          # Correção: Alterado o esquema para o padrão esperado pelo Xcode do projeto
           xcodebuild archive \
             -project *.xcodeproj \
-            -scheme pes2017_launcher \
+            -scheme pes2017recomp \
             -configuration Release \
             -archivePath ./build/pes2017.xcarchive \
             CODE_SIGN_IDENTITY="" \
