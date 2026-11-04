@@ -36,7 +36,6 @@ jobs:
       - name: Package into Unsigned IPA with Mods & Ultra Performance Support
         run: |
           mkdir -p Payload
-          # Ajuste o caminho abaixo se o nome do arquivo .app gerado pelo seu CMake for diferente
           if [ -d "build_ios/Release-iphoneos/pes2017recomp.app" ]; then
             cp -r build_ios/Release-iphoneos/pes2017recomp.app Payload/
           else
@@ -45,7 +44,7 @@ jobs:
           zip -r pes2017_unsigned.ipa Payload
 
       - name: Upload IPA Artifact
-        uses: actions/artifacts@v4
+        uses: actions/upload-artifact@v4
         with:
           name: pes2017-ios-ipa
           path: pes2017_unsigned.ipa
