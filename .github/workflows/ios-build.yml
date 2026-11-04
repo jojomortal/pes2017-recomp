@@ -15,7 +15,7 @@ jobs:
 
       - name: Install System Dependencies
         run: |
-          brew install cmake ninja vulkan-sdk
+          brew install cmake ninja vulkan-volk
 
       - name: Inject iOS Target into CMake
         run: |
