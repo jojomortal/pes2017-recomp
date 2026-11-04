@@ -32,10 +32,13 @@ jobs:
             set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -flto -DNDEBUG")\
           endif()' CMakeLists.txt
 
-          # EXECUTA AS FERRAMENTAS DE CORREÇÃO DO DESENVOLVEDOR: Corrige problemas estruturais e de jump tables automaticamente
-          if [ -f "tools/fixbounds.py" ]; then
-            echo "Executando correções de compilação da GPU oficiais do projeto..."
-            python3 tools/fixbounds.py --apply 2>/dev/null || true
+          # CORREÇÃO CIRÚRGICA COMPILADOR MAC: Aponta os seletores d e df para a estrutura real 'words'
+          TARGET_HEADER="runtime/gpu/texture.h"
+          if [ -f "$TARGET_HEADER" ]; then
+            echo "Aplicando substituição de compatibilidade de barramento gráfico em $TARGET_HEADER..."
+            # Substitui as chamadas de arrays d[...] e df[...] pelo membro real 'words' aceito pelo compilador
+            sed -i '' 's/Bits(d\[/Bits(words\[/g' "$TARGET_HEADER" 2>/dev/null || true
+            sed -i '' 's/Bits(df\[/Bits(words\[/g' "$TARGET_HEADER" 2>/dev/null || true
           fi
 
       - name: Pre-generate Recompilation Files
@@ -96,7 +99,7 @@ jobs:
             <key>UIFileSharingEnabled</key><true/>' "$INFOPLIST"
             
             plutil -insert LSSupportsOpeningDocumentsInPlace -bool YES "$INFOPLIST" 2>/dev/null || sed -i '' '/<\/dict>/i\
-            <key>LSSupportsOpeningDocumentsInPlace</key><true/>' "$INFOPLIST"
+            <key>UIFileSharingEnabled</key><true/>' "$INFOPLIST"
             
             echo "Injetando suporte a AirPlay, HDMI e Telas Externas..."
             plutil -insert UISupportsExternalDisplays -bool YES "$INFOPLIST" 2>/dev/null || sed -i '' '/<\/dict>/i\
