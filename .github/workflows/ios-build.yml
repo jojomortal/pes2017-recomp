@@ -32,16 +32,20 @@ jobs:
           mkdir -p pes
           mkdir -p build_ios
           
-          # Gera os arquivos simulados exigidos pelo CMake e injeta o header de forma limpa em linha única
+          # Gera os arquivos simulados exigidos pelo CMake e injeta o header estruturado com suporte a união .u32/.u64
           for dir in "ppc" "pes2017-recomp/ppc" "pes2017_recomp/ppc" "pes2017-recomp/pes2017-recomp/ppc" "pes2017-recomp/pes2017_recomp/ppc" "pes2017_recomp/pes2017-recomp/ppc" "pes2017_recomp/pes2017_recomp/ppc"; do
             echo "// Mock" > "$dir/ppc_func_mapping.cpp"
             echo "// Mock" > "$dir/stubs_generated.cpp"
             
-            # INJEÇÃO SEGURA POR ECHO LINHA POR LINHA CONTRA ERRO DE SINTAXE
             echo "#ifndef PPC_RECOMP_SHARED_H" > "$dir/ppc_recomp_shared.h"
             echo "#define PPC_RECOMP_SHARED_H" >> "$dir/ppc_recomp_shared.h"
             echo "#include <stdint.h>" >> "$dir/ppc_recomp_shared.h"
-            echo "struct PPCContext { uint64_t gpr; };" >> "$dir/ppc_recomp_shared.h"
+            echo "typedef union { uint64_t u64; uint32_t u32; } PPCReg;" >> "$dir/ppc_recomp_shared.h"
+            echo "struct PPCContext {" >> "$dir/ppc_recomp_shared.h"
+            echo "    PPCReg r1; PPCReg r2; PPCReg r3; PPCReg r4; PPCReg r5;" >> "$dir/ppc_recomp_shared.h"
+            echo "    PPCReg r11; PPCReg r12; PPCReg r31; PPCReg r32;" >> "$dir/ppc_recomp_shared.h"
+            echo "    PPCReg lr; PPCReg ctr; PPCReg xer; PPCReg fpscr;" >> "$dir/ppc_recomp_shared.h"
+            echo "};" >> "$dir/ppc_recomp_shared.h"
             echo "typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);" >> "$dir/ppc_recomp_shared.h"
             echo "#endif" >> "$dir/ppc_recomp_shared.h"
           done
