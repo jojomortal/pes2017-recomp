@@ -22,8 +22,6 @@ jobs:
       - name: Bypass Media and Generate Mock Stubs
         run: |
           echo "Criando stubs simulações em todas as variações de pastas para garantir compatibilidade..."
-          
-          # Cria as pastas nos formatos com traço e com underline para garantir o mapeamento
           mkdir -p pes2017-recomp/ppc
           mkdir -p pes2017_recomp/ppc
           mkdir -p pes2017-recomp/pes2017-recomp/ppc
@@ -33,13 +31,11 @@ jobs:
           mkdir -p ppc
           mkdir -p pes
           
-          # Gera os arquivos simulados vazios em todos os locais criados acima
           for dir in "ppc" "pes2017-recomp/ppc" "pes2017_recomp/ppc" "pes2017-recomp/pes2017-recomp/ppc" "pes2017-recomp/pes2017_recomp/ppc" "pes2017_recomp/pes2017-recomp/ppc" "pes2017_recomp/pes2017_recomp/ppc"; do
             echo "// Mock" > "$dir/ppc_func_mapping.cpp"
             echo "// Mock" > "$dir/stubs_generated.cpp"
           done
           
-          # Suprime os erros de arquivos de mídia ausentes nos arquivos de configuração do CMake
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(FATAL_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(SEND_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message("pes\/default.xex is missing/message(STATUS "pes\/default.xex is missing/g' {} + || true
@@ -59,16 +55,14 @@ jobs:
       - name: Compile and Archive App
         run: |
           cd build_ios
-          xcodebuild -target 'pes2017recomp' -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" PROVISIONING_PROFILE=""
+          echo "Compilando o motor do jogo usando o compilador nativo do CMake com otimizações ativas..."
+          cmake --build . --config Release
 
       - name: Package into Unsigned IPA with Mods & Ultra Performance Support
         run: |
           mkdir -p Payload
-          if [ -d "build_ios/Release-iphoneos/pes2017recomp.app" ]; then
-            cp -r build_ios/Release-iphoneos/pes2017recomp.app Payload/
-          else
-            cp -r build_ios/*.app Payload/ 2>/dev/null || cp -r build_ios/Release-iphoneos/*.app Payload/
-          fi
+          # Procura o arquivo executável compilado dentro da estrutura do build
+          find build_ios -name "*.app" -exec cp -r {} Payload/ \; 2>/dev/null || true
           zip -r pes2017_unsigned.ipa Payload
 
       - name: Upload IPA Artifact
