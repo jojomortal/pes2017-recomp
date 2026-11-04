@@ -53,10 +53,10 @@ jobs:
       - name: Compile and Archive App
         run: |
           cd build_ios
-          # Compila aplicando otimização agressiva de velocidade (-O3) através do Xcode do GitHub
+          # Correção: Mantido apenas o esquema validado, aplicando as otimizações de codificação
           xcodebuild archive \
             -project *.xcodeproj \
-            -alltargets \
+            -scheme pes2017recomp \
             -configuration Release \
             -archivePath ./build/pes2017.xcarchive \
             CODE_SIGN_IDENTITY="" \
