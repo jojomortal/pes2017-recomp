@@ -32,10 +32,10 @@ jobs:
 
       - name: Pre-generate Recompilation Files
         run: |
-          # Força a criação das pastas e geração dos arquivos stubs/funções fictícias vazias exigidas pelo CMake
-          mkdir -p pes2017-recomp/ppc
-          touch pes2017-recomp/ppc/ppc_func_mapping.cpp
-          touch pes2017-recomp/ppc/stubs_generated.cpp
+          # Correção: Força a criação das pastas e arquivos diretamente na raiz esperada pelo CMake
+          mkdir -p ppc
+          touch ppc/ppc_func_mapping.cpp
+          touch ppc/stubs_generated.cpp
 
       - name: Configure CMake for iOS Project
         run: |
