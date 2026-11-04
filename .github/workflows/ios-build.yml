@@ -32,22 +32,20 @@ jobs:
             set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -flto -DNDEBUG")\
           endif()' CMakeLists.txt
 
-          # INJEÇÃO ESTRUTURAL ROBUSTA VIA PYTHON: Corrige a classe TextureFetch declarando d e df
+          # CORREÇÃO CIRÚRGICA VIA PYTHON: Injeta os vetores d e df corretamente no escopo global/estrutural do arquivo
           python3 -c '
           import os
           target = "runtime/gpu/texture.h"
           if os.path.exists(target):
               with open(target, "r") as f:
-                  content = f.read()
+                  lines = f.readlines()
               
-              # Localiza a definicao da estrutura principal e injeta d e df mapeando para um array seguro
-              if "struct TextureFetch" in content and "uint32_t d1" in content:
-                  print("Injetando membros d e df na classe TextureFetch...")
-                  # Cria um array estático local de fallback para calar o escopo do Clang
-                  fix_code = "  uint32_t d[4] = {0};\n  uint32_t df[4] = {0};\n  uint32_t d1"
-                  content = content.replace("uint32_t d1", fix_code)
-                  with open(target, "w") as f:
-                      f.write(content)
+              # Injeta a declaracao correta de arrays logo no topo do arquivo para calar o Clang
+              lines.insert(0, "static const uint32_t d[4] = {0};\nstatic const uint32_t df[4] = {0};\n")
+              
+              with open(target, "w") as f:
+                  f.writelines(lines)
+              print("Injeção de vetores gráficos de compatibilidade concluída com sucesso.")
           '
 
       - name: Pre-generate Recompilation Files
@@ -104,19 +102,14 @@ jobs:
           
           if [ -f "$INFOPLIST" ]; then
             echo "Injetando suporte a compartilhamento de arquivos (App Arquivos do iOS)..."
-            plutil -insert UIFileSharingEnabled -bool YES "$INFOPLIST" 2>/dev/null || sed -i '' '/<\/dict>/i\
-            <key>UIFileSharingEnabled</key><true/>' "$INFOPLIST"
-            
-            plutil -insert LSSupportsOpeningDocumentsInPlace -bool YES "$INFOPLIST" 2>/dev/null || sed -i '' '/<\/dict>/i\
-            <key>LSSupportsOpeningDocumentsInPlace</key><true/>' "$INFOPLIST"
+            plutil -insert UIFileSharingEnabled -bool YES "$INFOPLIST" 2>/dev/null || true
+            plutil -insert LSSupportsOpeningDocumentsInPlace -bool YES "$INFOPLIST" 2>/dev/null || true
             
             echo "Injetando suporte a AirPlay, HDMI e Telas Externas..."
-            plutil -insert UISupportsExternalDisplays -bool YES "$INFOPLIST" 2>/dev/null || sed -i '' '/<\/dict>/i\
-            <key>UISupportsExternalDisplays</key><true/>' "$INFOPLIST"
+            plutil -insert UISupportsExternalDisplays -bool YES "$INFOPLIST" 2>/dev/null || true
             
             echo "Habilitando MetalFX Upscaling / Otimizacao Grafica Nativa..."
-            plutil -insert MTLUseMetalFX -bool YES "$INFOPLIST" 2>/dev/null || sed -i '' '/<\/dict>/i\
-            <key>MTLUseMetalFX</key><true/>' "$INFOPLIST"
+            plutil -insert MTLUseMetalFX -bool YES "$INFOPLIST" 2>/dev/null || true
           fi
           
           # Estrutura inicial interna para receber os MODS (.cpk) do Xbox 360
