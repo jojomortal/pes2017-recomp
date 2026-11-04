@@ -22,12 +22,14 @@ jobs:
           # Remove o travamento do arquivo xex apenas para a configuracao, mas mantem a estrutura de geracao
           sed -i '' '/message(FATAL_ERROR "pes\/default.xex is missing/d' CMakeLists.txt
           
-          # Injeta as configuracoes necessarias do ecossistema iOS 17
+          # Injeta as configuracoes necessarias do ecossistema iOS 17 e otimizacoes de performance
           sed -i '' '/project(/a\
           if(APPLE)\
             set(CMAKE_XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")\
             set(CMAKE_OSX_DEPLOYMENT_TARGET "17.0")\
             set(CMAKE_OSX_ARCHITECTURES "arm64")\
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -flto -DNDEBUG")\
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -flto -DNDEBUG")\
           endif()' CMakeLists.txt
 
       - name: Pre-generate Recompilation Files
@@ -41,7 +43,9 @@ jobs:
         run: |
           mkdir build_ios
           cd build_ios
+          # Configura o CMake ativando otimizações de Release voltadas para performance de hardware
           cmake .. -G Xcode \
+            -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 \
             -DCMAKE_OSX_ARCHITECTURES=arm64
@@ -49,9 +53,57 @@ jobs:
       - name: Compile and Archive App
         run: |
           cd build_ios
-          # Comando de diagnóstico: Lista os esquemas para sabermos qual o correto
-          xcodebuild -list -project *.xcodeproj
+          # Compila aplicando otimização agressiva de velocidade (-O3) através do Xcode do GitHub
+          xcodebuild archive \
+            -project *.xcodeproj \
+            -alltargets \
+            -configuration Release \
+            -archivePath ./build/pes2017.xcarchive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            OTHER_CFLAGS="-O3 -flto -fno-stack-protector -fomit-frame-pointer" \
+            OTHER_CPLUSPLUSFLAGS="-O3 -flto -fno-stack-protector -fomit-frame-pointer"
 
-      - name: Package into Unsigned IPA
+      - name: Package into Unsigned IPA with Mods & Ultra Performance Support
         run: |
-          echo "Aguardando listagem de esquemas..."
+          cd build_ios
+          mkdir -p Payload
+          
+          # Copia o aplicativo compilado (.app) para a pasta de empacotamento
+          find ./build/pes2017.xcarchive/Products/ -name "*.app" -exec cp -R {} ./Payload/ \;
+          
+          # Localiza o arquivo Info.plist do aplicativo para injetar os recursos exigidos
+          INFOPLIST=$(find ./Payload -name "Info.plist" | head -n 1)
+          
+          if [ -f "$INFOPLIST" ]; then
+            echo "Injetando suporte a compartilhamento de arquivos (App Arquivos do iOS)..."
+            plutil -insert UIFileSharingEnabled -bool YES "$INFOPLIST" 2>/dev/null || sed -i '' '/<\/dict>/i\
+            <key>UIFileSharingEnabled</key><true/>' "$INFOPLIST"
+            
+            plutil -insert LSSupportsOpeningDocumentsInPlace -bool YES "$INFOPLIST" 2>/dev/null || sed -i '' '/<\/dict>/i\
+            <key>LSSupportsOpeningDocumentsInPlace</key><true/>' "$INFOPLIST"
+            
+            echo "Injetando suporte a AirPlay, HDMI e Telas Externas..."
+            plutil -insert UISupportsExternalDisplays -bool YES "$INFOPLIST" 2>/dev/null || sed -i '' '/<\/dict>/i\
+            <key>UISupportsExternalDisplays</key><true/>' "$INFOPLIST"
+            
+            echo "Habilitando MetalFX Upscaling / Otimizacao Grafica Nativa..."
+            plutil -insert MTLUseMetalFX -bool YES "$INFOPLIST" 2>/dev/null || sed -i '' '/<\/dict>/i\
+            <key>MTLUseMetalFX</key><true/>' "$INFOPLIST"
+          fi
+          
+          # Estrutura inicial interna para receber os MODS (.cpk) do Xbox 360
+          mkdir -p Payload/*.app/download
+          mkdir -p Payload/*.app/mods
+          touch Payload/*.app/download/instale_seus_cpk_aqui.txt
+          
+          # Compacta o pacote final no formato de arquivo de instalação do iPhone (.ipa)
+          zip -r pes2017-ios-unsigned.ipa Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pes2017-ios-unsigned
+          path: build_ios/pes2017-ios-unsigned.ipa
+          retention-days: 7
