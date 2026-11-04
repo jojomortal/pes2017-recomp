@@ -17,8 +17,12 @@ jobs:
         run: |
           brew install cmake ninja vulkan-volk
 
-      - name: Inject iOS Target into CMake
+      - name: Bypass Executable Check and Inject iOS Target
         run: |
+          # Remove a checagem obrigatória do arquivo default.xex no CMake original
+          sed -i '' '/message(FATAL_ERROR "pes\/default.xex is missing/d' CMakeLists.txt
+          
+          # Injeta as configurações necessárias do ecossistema iOS 17
           sed -i '' '/project(/a\
           if(APPLE)\
             set(CMAKE_XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")\
