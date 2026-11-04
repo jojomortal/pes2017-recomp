@@ -1,128 +1,55 @@
-name: Build PES 2017 iOS (Unsigned)
+name: Build iOS App
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Permite que você ative o build manualmente pelo botão no GitHub
 
 jobs:
   build-ios:
-    runs-on: macos-14
-    
+    name: build-ios
+    runs-on: macos-latest
+
     steps:
-      - name: Code Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install System Dependencies
+      - name: Install Vulkan SDK
         run: |
-          brew install cmake ninja vulkan-volk molten-vk Python
-
-      - name: Setup Tools and Build Recompiler First
-        run: |
-          # Remove o travamento do arquivo xex apenas para a configuracao, mas mantem a estrutura de geracao
-          sed -i '' '/message(FATAL_ERROR "pes\/default.xex is missing/d' CMakeLists.txt
-          
-          # Injeta as configuracoes necessarias do ecossistema iOS 17 e otimizacoes de performance
-          sed -i '' '/project(/a\
-          if(APPLE)\
-            set(CMAKE_XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")\
-            set(CMAKE_OSX_DEPLOYMENT_TARGET "17.0")\
-            set(CMAKE_OSX_ARCHITECTURES "arm64")\
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -flto -DNDEBUG")\
-            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -flto -DNDEBUG")\
-          endif()' CMakeLists.txt
-
-          # CORREÇÃO CIRÚRGICA VIA PYTHON: Injeta os vetores d e df corretamente no escopo global/estrutural do arquivo
-          python3 -c '
-          import os
-          target = "runtime/gpu/texture.h"
-          if os.path.exists(target):
-              with open(target, "r") as f:
-                  lines = f.readlines()
-              
-              # Injeta a declaracao correta de arrays logo no topo do arquivo para calar o Clang
-              lines.insert(0, "static const uint32_t d[4] = {0};\nstatic const uint32_t df[4] = {0};\n")
-              
-              with open(target, "w") as f:
-                  f.writelines(lines)
-              print("Injeção de vetores gráficos de compatibilidade concluída com sucesso.")
-          '
-
-      - name: Pre-generate Recompilation Files
-        run: |
-          # Força a criação das pastas e arquivos diretamente na raiz esperada pelo CMake
-          mkdir -p ppc
-          touch ppc/ppc_func_mapping.cpp
-          touch ppc/stubs_generated.cpp
+          echo "Instalando o Vulkan SDK para corrigir o erro vulkan.h..."
+          brew install vulkan-sdk
 
       - name: Configure CMake for iOS Project
         run: |
-          mkdir build_ios
+          mkdir -p build_ios
           cd build_ios
-          # Configura o CMake ativando otimizações de Release voltadas para performance de hardware
-          cmake .. -G Xcode \
-            -DCMAKE_BUILD_TYPE=Release \
+          cmake .. \
             -DCMAKE_SYSTEM_NAME=iOS \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 \
-            -DCMAKE_OSX_ARCHITECTURES=arm64
+            -DCMAKE_OSX_SYSROOT=iphoneos \
+            -DCMAKE_BUILD_TYPE=Release
 
       - name: Compile and Archive App
         run: |
           cd build_ios
-          
-          # 1. Lista os esquemas reais criados no log para auditoria
-          xcodebuild -list -project *.xcodeproj
-          
-          # 2. Descobre automaticamente o nome do esquema principal gerado pelo CMake (ignora ALL_BUILD)
-          REAL_SCHEME=$(xcodebuild -list -project *.xcodeproj | grep -E "Schemes:" -A 10 | tail -n +2 | sed 's/^[[:space:]]*//' | grep -v "ALL_BUILD" | head -n 1)
-          echo "Esquema autodetectado para compilação: '$REAL_SCHEME'"
-          
-          # 3. Executa a compilação aplicando a otimização de estabilização de FPS e silenciando os avisos gráficos restantes
-          xcodebuild archive \
-            -project *.xcodeproj \
-            -scheme "$REAL_SCHEME" \
-            -configuration Release \
-            -archivePath ./build/pes2017.xcarchive \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            OTHER_CFLAGS="-O3 -flto -fno-stack-protector -fomit-frame-pointer -Wno-everything -DMTL_STABLE_FPS=1" \
-            OTHER_CPLUSPLUSFLAGS="-O3 -flto -fno-stack-protector -fomit-frame-pointer -Wno-everything -DMTL_STABLE_FPS=1"
+          xcodebuild -target 'pes2017recomp' -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" PROVISIONING_PROFILE=""
 
       - name: Package into Unsigned IPA with Mods & Ultra Performance Support
         run: |
-          cd build_ios
           mkdir -p Payload
-          
-          # Copia o aplicativo compilado (.app) para a pasta de empacotamento
-          find ./build/pes2017.xcarchive/Products/ -name "*.app" -exec cp -R {} ./Payload/ \;
-          
-          # Localiza o arquivo Info.plist do aplicativo para injetar os recursos exigidos
-          INFOPLIST=$(find ./Payload -name "Info.plist" | head -n 1)
-          
-          if [ -f "$INFOPLIST" ]; then
-            echo "Injetando suporte a compartilhamento de arquivos (App Arquivos do iOS)..."
-            plutil -insert UIFileSharingEnabled -bool YES "$INFOPLIST" 2>/dev/null || true
-            plutil -insert LSSupportsOpeningDocumentsInPlace -bool YES "$INFOPLIST" 2>/dev/null || true
-            
-            echo "Injetando suporte a AirPlay, HDMI e Telas Externas..."
-            plutil -insert UISupportsExternalDisplays -bool YES "$INFOPLIST" 2>/dev/null || true
-            
-            echo "Habilitando MetalFX Upscaling / Otimizacao Grafica Nativa..."
-            plutil -insert MTLUseMetalFX -bool YES "$INFOPLIST" 2>/dev/null || true
+          # Ajuste o caminho abaixo se o nome do arquivo .app gerado pelo seu CMake for diferente
+          if [ -d "build_ios/Release-iphoneos/pes2017recomp.app" ]; then
+            cp -r build_ios/Release-iphoneos/pes2017recomp.app Payload/
+          else
+            cp -r build_ios/*.app Payload/ 2>/dev/null || cp -r build_ios/Release-iphoneos/*.app Payload/
           fi
-          
-          # Estrutura inicial interna para receber os MODS (.cpk) do Xbox 360
-          mkdir -p Payload/*.app/download
-          mkdir -p Payload/*.app/mods
-          touch Payload/*.app/download/instale_seus_cpk_aqui.txt
-          
-          # Compacta o pacote final no formato de arquivo de instalação do iPhone (.ipa)
-          zip -r pes2017-ios-unsigned.ipa Payload
+          zip -r pes2017_unsigned.ipa Payload
 
       - name: Upload IPA Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/artifacts@v4
         with:
-          name: pes2017-ios-unsigned
-          path: build_ios/pes2017-ios-unsigned.ipa
-          retention-days: 7
+          name: pes2017-ios-ipa
+          path: pes2017_unsigned.ipa
+
+      - name: Post Code Checkout
+        run: |
+          echo "Processo finalizado com sucesso!"
