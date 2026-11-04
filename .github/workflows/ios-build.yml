@@ -32,20 +32,18 @@ jobs:
           mkdir -p pes
           mkdir -p build_ios
           
-          # Gera os arquivos simulados básicos exigidos pelo CMakeLists
+          # Gera os arquivos simulados exigidos pelo CMake e injeta o header de forma limpa em linha única
           for dir in "ppc" "pes2017-recomp/ppc" "pes2017_recomp/ppc" "pes2017-recomp/pes2017-recomp/ppc" "pes2017-recomp/pes2017_recomp/ppc" "pes2017_recomp/pes2017-recomp/ppc" "pes2017_recomp/pes2017_recomp/ppc"; do
             echo "// Mock" > "$dir/ppc_func_mapping.cpp"
             echo "// Mock" > "$dir/stubs_generated.cpp"
             
-            # INJEÇÃO CIRÚRGICA DO HEADER FALTANTE DENTRO DA PASTA PPC EXIGIDA PELO KERNEL
-            cat << 'EOF' > "$dir/ppc_recomp_shared.h"
-            #ifndef PPC_RECOMP_SHARED_H
-            #define PPC_RECOMP_SHARED_H
-            #include <stdint.h>
-            struct PPCContext { uint64_t gpr; };
-            typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);
-            #endif
-            EOF
+            # INJEÇÃO SEGURA POR ECHO LINHA POR LINHA CONTRA ERRO DE SINTAXE
+            echo "#ifndef PPC_RECOMP_SHARED_H" > "$dir/ppc_recomp_shared.h"
+            echo "#define PPC_RECOMP_SHARED_H" >> "$dir/ppc_recomp_shared.h"
+            echo "#include <stdint.h>" >> "$dir/ppc_recomp_shared.h"
+            echo "struct PPCContext { uint64_t gpr; };" >> "$dir/ppc_recomp_shared.h"
+            echo "typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);" >> "$dir/ppc_recomp_shared.h"
+            echo "#endif" >> "$dir/ppc_recomp_shared.h"
           done
           
           # Suprime os erros de arquivos de mídia ausentes nos arquivos de configuração do CMake
