@@ -40,6 +40,10 @@ jobs:
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(SEND_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message("pes\/default.xex is missing/message(STATUS "pes\/default.xex is missing/g' {} + || true
 
+          echo "Ajustando drivers de áudio para compatibilidade nativa com iOS..."
+          find . -type f \( -name "*.cpp" -o -name "*.h" \) -exec sed -i '' 's|<aaudio/AAudio.h>|// No AAudio|g' {} + || true
+          find . -type f \( -name "*.cpp" -o -name "*.h" \) -exec sed -i '' 's|<oboe/Oboe.h>|// No Oboe|g' {} + || true
+
       - name: Configure CMake for iOS Project
         run: |
           mkdir -p build_ios
@@ -49,19 +53,20 @@ jobs:
             -DCMAKE_OSX_SYSROOT=iphoneos \
             -DCMAKE_BUILD_TYPE=Release \
             -DPES17_USE_METAL=ON \
-            -DCMAKE_C_FLAGS="-O3 -ffast-math" \
-            -DCMAKE_CXX_FLAGS="-O3 -ffast-math"
+            -DENABLE_AUDIO_SDL=ON \
+            -DPES17_AUDIO_BACKEND=SDL \
+            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0" \
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0"
 
       - name: Compile and Archive App
         run: |
           cd build_ios
-          echo "Compilando o motor do jogo usando o compilador nativo do CMake com otimizações ativas..."
+          echo "Compilando o motor do jogo usando o compilador nativo do CMake com otimizações de áudio e vídeo..."
           cmake --build . --config Release
 
       - name: Package into Unsigned IPA with Mods & Ultra Performance Support
         run: |
           mkdir -p Payload
-          # Procura o arquivo executável compilado dentro da estrutura do build
           find build_ios -name "*.app" -exec cp -r {} Payload/ \; 2>/dev/null || true
           zip -r pes2017_unsigned.ipa Payload
 
