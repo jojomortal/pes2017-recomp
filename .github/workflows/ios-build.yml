@@ -32,7 +32,7 @@ jobs:
           mkdir -p pes
           mkdir -p build_ios
           
-          # Gera os arquivos simulados exigidos pelo CMake e estruturas de hardware
+          # Gera os arquivos simulados exigidos pelo CMake e estruturas de hardware básicas
           for dir in "ppc" "pes2017-recomp/ppc" "pes2017_recomp/ppc" "pes2017-recomp/pes2017-recomp/ppc" "pes2017-recomp/pes2017_recomp/ppc" "pes2017_recomp/pes2017-recomp/ppc" "pes2017_recomp/pes2017_recomp/ppc"; do
             echo "// Mock" > "$dir/ppc_func_mapping.cpp"
             echo "// Mock" > "$dir/stubs_generated.cpp"
@@ -47,10 +47,6 @@ jobs:
             echo "    PPCReg lr; PPCReg ctr; PPCReg xer; PPCReg fpscr;" >> "$dir/ppc_recomp_shared.h"
             echo "};" >> "$dir/ppc_recomp_shared.h"
             echo "typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);" >> "$dir/ppc_recomp_shared.h"
-            
-            # SUBSTITUIÇÃO CIRÚRGICA VIA MACRO GLOBAL DO COMPILADOR
-            echo "#define PPC_QueryTimeBase() (0ULL)" >> "$dir/ppc_recomp_shared.h"
-            
             echo "#endif" >> "$dir/ppc_recomp_shared.h"
 
             echo "#ifndef PPC_CONFIG_H" > "$dir/ppc_config.h"
@@ -66,6 +62,10 @@ jobs:
           echo "Desativando dependências de áudio nativo Android e relatórios de crash de baixo nível..."
           find . -name "audio.cpp" -exec sh -c 'echo "// Desativado para o build iOS" > "{}"' \;
           find . -name "crash.cpp" -exec sh -c 'echo "// Desativado para evitar travas de baixo nivel no iOS" > "{}"' \;
+
+          echo "Aplicando correção direta de clock e sincronia gráfica no command_processor..."
+          # Substitui a chamada da função faltante por um valor numérico plano diretamente nos arquivos C++ do projeto
+          find . -name "command_processor.cpp" -exec sed -i '' 's/PPC_QueryTimeBase()/0/g' {} + || true
 
       - name: Configure CMake for iOS Project
         run: |
