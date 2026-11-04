@@ -19,11 +19,24 @@ jobs:
         with:
           vulkan_version: latest
 
-      - name: Bypass Media and Android Audio
+      - name: Bypass Media, Stubs and Android Audio
         run: |
-          echo "Limpando travas de mídia para evitar pirataria no repositório..."
+          echo "Criando stubs simulações em todas as variações de pastas para garantir compatibilidade..."
+          mkdir -p pes2017-recomp/ppc
+          mkdir -p pes2017_recomp/ppc
+          mkdir -p pes2017-recomp/pes2017-recomp/ppc
+          mkdir -p pes2017-recomp/pes2017_recomp/ppc
+          mkdir -p pes2017_recomp/pes2017-recomp/ppc
+          mkdir -p pes2017_recomp/pes2017_recomp/ppc
+          mkdir -p ppc
           mkdir -p pes
           mkdir -p build_ios
+          
+          # Gera os arquivos simulados básicos exigidos pelo CMakeLists
+          for dir in "ppc" "pes2017-recomp/ppc" "pes2017_recomp/ppc" "pes2017-recomp/pes2017-recomp/ppc" "pes2017-recomp/pes2017_recomp/ppc" "pes2017_recomp/pes2017-recomp/ppc" "pes2017_recomp/pes2017_recomp/ppc"; do
+            echo "// Mock" > "$dir/ppc_func_mapping.cpp"
+            echo "// Mock" > "$dir/stubs_generated.cpp"
+          done
           
           # Suprime os erros de arquivos de mídia ausentes nos arquivos de configuração do CMake
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(FATAL_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
