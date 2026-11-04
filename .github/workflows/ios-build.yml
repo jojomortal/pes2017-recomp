@@ -48,6 +48,11 @@ jobs:
         run: |
           mkdir -p build_ios
           cd build_ios
+          
+          # Mapeia os caminhos de cabeçalhos das subestruturas do XenonRecomp para o ambiente iOS
+          XENON_UTILS_DIR=$(find ${{ github.workspace }} -type d -name "XenonUtils" | head -n 1)
+          XENON_RECOMP_DIR=$(find ${{ github.workspace }} -type d -name "XenonRecomp" | head -n 1)
+          
           cmake .. \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_SYSROOT=iphoneos \
@@ -55,13 +60,14 @@ jobs:
             -DPES17_USE_METAL=ON \
             -DENABLE_AUDIO_SDL=ON \
             -DPES17_AUDIO_BACKEND=SDL \
-            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0" \
-            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0"
+            -DCMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES="$XENON_UTILS_DIR;$XENON_RECOMP_DIR" \
+            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0 -I$XENON_UTILS_DIR -I$XENON_RECOMP_DIR" \
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0 -I$XENON_UTILS_DIR -I$XENON_RECOMP_DIR"
 
       - name: Compile and Archive App
         run: |
           cd build_ios
-          echo "Compilando o motor do jogo usando o compilador nativo do CMake com otimizações de áudio e vídeo..."
+          echo "Compilando o motor do jogo usando o compilador nativo do CMake com mapeamento de caminhos..."
           cmake --build . --config Release
 
       - name: Package into Unsigned IPA with Mods & Ultra Performance Support
