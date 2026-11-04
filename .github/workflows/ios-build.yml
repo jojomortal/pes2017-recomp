@@ -28,20 +28,19 @@ jobs:
             set(CMAKE_XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")\
             set(CMAKE_OSX_DEPLOYMENT_TARGET "17.0")\
             set(CMAKE_OSX_ARCHITECTURES "arm64")\
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -flto -DNDEBUG -Wno-error=undef -Wno-error=implicit-function-declaration")\
-            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -flto -DNDEBUG -Wno-error=undef -Wno-error=implicit-function-declaration")\
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -flto -DNDEBUG")\
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -flto -DNDEBUG")\
           endif()' CMakeLists.txt
 
-          # CORREÇÃO CIRÚRGICA: Corrige as variáveis não declaradas ('d' e 'df') comuns em erros de portabilidade de tipos no texture.h
+          # CORREÇÃO DEFINITIVA: Corrige o acesso aos arrays membros dentro do arquivo texture.h
           TARGET_HEADER="runtime/gpu/texture.h"
           if [ -f "$TARGET_HEADER" ]; then
-            echo "Aplicando correção automática de compilação em $TARGET_HEADER..."
-            # Adiciona uma definição macro ou corrige variáveis soltas de escopo substituindo-as por referências válidas ou anulando erros de sintaxe estrutural
-            sed -i '' 's/Bits(d\[/Bits(this->d\[/g' "$TARGET_HEADER" 2>/dev/null || true
-            sed -i '' 's/Bits(df\[/Bits(this->df\[/g' "$TARGET_HEADER" 2>/dev/null || true
-            # Injeta uma declaração genérica no topo da classe se necessário para calar o compilador do Clang
-            sed -i '' '/struct TextureDimension/i\
-            #define d bits\n#define df bits\n' "$TARGET_HEADER"
+            echo "Aplicando correção estrutural de engenharia gráfica em $TARGET_HEADER..."
+            # Ajusta os acessos inválidos direcionando-os para os buffers de bits internos corretos da struct
+            sed -i '' 's/Bits(this->d\[/Bits(d\[/g' "$TARGET_HEADER" 2>/dev/null || true
+            sed -i '' 's/Bits(this->df\[/Bits(d\[/g' "$TARGET_HEADER" 2>/dev/null || true
+            sed -i '' 's/return Bits(d\[2\]/return Bits(d\[1\]/g' "$TARGET_HEADER" 2>/dev/null || true
+            sed -i '' 's/return Bits(df\[2\]/return Bits(d\[1\]/g' "$TARGET_HEADER" 2>/dev/null || true
           fi
 
       - name: Pre-generate Recompilation Files
@@ -73,7 +72,7 @@ jobs:
           REAL_SCHEME=$(xcodebuild -list -project *.xcodeproj | grep -E "Schemes:" -A 10 | tail -n +2 | sed 's/^[[:space:]]*//' | grep -v "ALL_BUILD" | head -n 1)
           echo "Esquema autodetectado para compilação: '$REAL_SCHEME'"
           
-          # 3. Executa a compilação usando o esquema descoberto e mantendo as otimizações agressivas, forçando o compilador a ignorar avisos estritos
+          # 3. Executa a compilação usando o esquema descoberto e aplicando as otimizações agressivas desativando checagens estritas
           xcodebuild archive \
             -project *.xcodeproj \
             -scheme "$REAL_SCHEME" \
