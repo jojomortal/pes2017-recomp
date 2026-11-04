@@ -63,12 +63,12 @@ jobs:
           find . -name "audio.cpp" -exec sh -c 'echo "// Desativado para o build iOS" > "{}"' \;
           find . -name "crash.cpp" -exec sh -c 'echo "// Desativado para evitar travas de baixo nivel no iOS" > "{}"' \;
 
-          echo "Injetando definições de compatibilidade diretamente no topo do command_processor..."
-          # Adiciona linhas de definição de macro no início do arquivo para cobrir todas as variações de escrita (maiúsculas/minúsculas)
+          echo "Injetando definições de compatibilidade funcional diretamente no topo do command_processor..."
+          # Altera a macro para aceitar parênteses vazios () e retornar 0 de forma estruturada para o C++
           find . -type f -name "command_processor.cpp" -exec sed -i '' '1i\
-          #define PPC_QueryTimeBase 0\
-          #define PPC_QueryTimebase 0\
-          #define PPC_querytimebase 0\
+          #define PPC_QueryTimeBase() 0\
+          #define PPC_QueryTimebase() 0\
+          #define PPC_querytimebase() 0\
           ' {} + || true
 
       - name: Configure CMake for iOS Project
