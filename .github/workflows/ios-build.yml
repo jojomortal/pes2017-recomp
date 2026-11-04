@@ -63,14 +63,10 @@ jobs:
           find . -name "audio.cpp" -exec sh -c 'echo "// Desativado para o build iOS" > "{}"' \;
           find . -name "crash.cpp" -exec sh -c 'echo "// Desativado para evitar travas de baixo nivel no iOS" > "{}"' \;
 
-          echo "Aplicando correção direta de clock e sincronia gráfica no command_processor..."
-          # Adicionado espaço estratégico (de '0' para ' 0') para evitar que o número grude nas variáveis do tipo uint32_t
-          find . -type f -name "command_processor.cpp" -exec sed -i '' 's/PPC_QueryTimeBase()/ 0/g' {} + || true
-          find . -type f -name "command_processor.cpp" -exec sed -i '' 's/(PPC_QueryTimebase())/ 0/g' {} + || true
-
       - name: Configure CMake for iOS Project
         run: |
           cd build_ios
+          # Adicionada a flag global -DPPC_QueryTimeBase=0 que resolve o clock nativamente sem quebrar a sintaxe do C++
           cmake .. \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_SYSROOT=iphoneos \
@@ -78,8 +74,8 @@ jobs:
             -DPES17_USE_METAL=ON \
             -DENABLE_AUDIO_SDL=ON \
             -DPES17_AUDIO_BACKEND=SDL \
-            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0" \
-            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0"
+            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0 -DPPC_QueryTimeBase=0" \
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0 -DPPC_QueryTimeBase=0"
 
       - name: Compile and Archive App
         run: |
