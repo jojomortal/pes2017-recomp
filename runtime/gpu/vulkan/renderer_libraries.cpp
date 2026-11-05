@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 // Shaders compiled when the title loads them, and pipelines linked from them.
 //
 // On the console a shader is ready the moment the title loads it: the GPU runs
@@ -502,3 +503,4 @@ void vk::renderer::PrepareShader(bool pixel, const uint32_t* code, size_t words)
 void vk::renderer::PrepareShader(bool, const uint32_t*, size_t) {}
 
 #endif  // PES17_HAVE_VULKAN
+#endif // __APPLE__
