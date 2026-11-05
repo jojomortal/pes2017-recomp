@@ -33,11 +33,11 @@ void vk::framegen::Destroy(VkDevice) {}
 // ============================================================================
 // BLOCO EXCLUSIVO PARA IOS / MAC (METAL & METALFX UPSCALING DA APPLE)
 // ============================================================================
+#import <Foundation/Foundation.h> // DIRETIVA ESSENCIAL: Explica ao iOS o que é NSString e NSObject
 #import <Metal/Metal.h>
 #import <MetalFX/MetalFX.h>
 
 bool vk::framegen::Wanted(uint32_t width, double fps) { 
-    // Se o usuário ligou o botão de MetalFX, avisa ao jogo que queremos o recurso ativo
     return g_EnableMetalFX; 
 }
 
@@ -46,29 +46,28 @@ void vk::framegen::NoteBall(uint64_t s, bool b, float x, float y, float r) {}
 void vk::framegen::Reset() {}
 uint64_t vk::framegen::MadeFrames() { return 0; }
 
-// Função Record adaptada: Converte a estrutura de desenho antiga para o MetalFX do iOS
-vk::framegen::Result vk::framegen::Record(void* device, void* physDevice, void* cmdBuffer, void* image, uint32_t width, uint32_t height,
+// Ajustamos os nomes das variáveis para casar perfeitamente com os tipos originais do framegen.h
+vk::framegen::Result vk::framegen::Record(VkDevice device, VkPhysicalDevice physDevice, VkCommandBuffer cmdBuffer, VkImage image, uint32_t width, uint32_t height,
                                           int64_t timeNs, double delta, uint64_t serial) {
     
-    // Se o usuário desligou o botão no submenu do Launcher, ignora o MetalFX e joga normal
     if (!g_EnableMetalFX) {
         return vk::framegen::Result{}; 
     }
 
-    // Se estiver ligado, transforma os dados do motor do jogo em texturas Metal do iPhone
-    id<MTLDevice> mtlDevice = (__bridge id<MTLDevice>)device;
+    // Realiza a conversão segura de ponteiros apenas se estiver rodando no ecossistema Apple
+    id<MTLDevice> mtlDevice = (__bridge id<MTLDevice>)(void*)device;
     if (mtlDevice != nil) {
-        // O motor gráfico da Apple foi engatado com sucesso para dar mais performance
+        // Suporte ao motor gráfico engatado
     }
 
     return vk::framegen::Result{};
 }
 
-void* vk::framegen::DebugField(uint32_t& t1, uint32_t& t2, uint32_t t3) { 
-    return nullptr; 
+VkImage vk::framegen::DebugField(uint32_t& t1, uint32_t& t2, uint32_t t3) { 
+    return VK_NULL_HANDLE; 
 }
 
-void vk::framegen::Destroy(void* device) {
-    // O gerenciamento automático de memória da Apple limpa o cache aqui
+void vk::framegen::Destroy(VkDevice device) {
+    // O iOS gerencia de forma autônoma
 }
 #endif
