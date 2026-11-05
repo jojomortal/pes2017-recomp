@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 #include "upscaler.h"
 
 #ifndef PES17_HAVE_VULKAN
@@ -456,3 +457,4 @@ void vk::upscale::Destroy(VkDevice device)
     g = State{};
 }
 #endif
+#endif // __APPLE__
