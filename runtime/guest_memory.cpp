@@ -153,10 +153,15 @@ namespace
     int OpenBankDescriptor()
     {
 #ifdef __APPLE__
-        // No iOS, usamos shm_open com SHM_ANON para criar uma alocação de memória anônima
-        // compatível com POSIX que permite mapeamentos múltiplos compartilhados na RAM.
-        const int fd = shm_open(SHM_ANON, O_RDWR | O_CREAT, 0600);
-        if (fd >= 0) return fd;
+        // Correção nativa para iOS: criamos uma região de memória compartilhada POSIX temporária
+        // e aplicamos o shm_unlink imediatamente. O descritor continua ativo na RAM, mas
+        // oculto do sistema, exatamente como o comportamento do SHM_ANON.
+        const int fd = shm_open("/pes17_phys_bank", O_RDWR | O_CREAT | O_TRUNC, 0600);
+        if (fd >= 0)
+        {
+            shm_unlink("/pes17_phys_bank");
+            return fd;
+        }
 #else
         const int fd = int(syscall(SYS_memfd_create, "pes17-physical", 0));
         if (fd >= 0) return fd;
@@ -184,7 +189,7 @@ namespace
         if (fd < 0) { LOGE("no descriptor for the physical bank"); return false; }
         bool ok = ftruncate(fd, off_t(size)) == 0;
         
-        // Mapeamentos complementares e fechamento seguro do escopo truncado
+        // Mapeamentos complementares e fechamento seguro do escopo trunfado POSIX original
         if (ok)
         {
             for (uint32_t window : { guest::kCachedBase, guest::kPhysicalBase, guest::kApertureBase })
