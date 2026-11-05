@@ -42,7 +42,10 @@ GUEST_HOOK(823F7C38)
 GUEST_HOOK(82F3CBD0)
 {
     const uint32_t self = ctx.r3.u32;
-    if (*GuestPtr<be32>(self + 88) == 0) *GuestPtr<be32>(self + 88) = 3;
+    if (*GuestPtr<be32>(self + 88) == 0) 
+    {
+        *GuestPtr<be32>(self + 88) = 3;
+    }
     GUEST_ORIG(82F3CBD0)(ctx, base);
 }
 
@@ -57,19 +60,25 @@ namespace
     std::string GuestString16(uint32_t address)
     {
         if (!address) return {};
-        const uint32_t size = *GuestPtr<be32>(address + 16), capacity = *GuestPtr<be32>(address + 20);
+        const uint32_t size = *GuestPtr<be32>(address + 16);
+        const uint32_t capacity = *GuestPtr<be32>(address + 20);
         if (size > 256) return {};
-        const uint32_t data = capacity >= 16 ? uint32_t(*GuestPtr<be32>(address)) : address;
+        const uint32_t data = (capacity >= 16) ? uint32_t(*GuestPtr<be32>(address)) : address;
         return std::string(reinterpret_cast<const char*>(guest::Base() + data), size);
     }
 }
 
 GUEST_HOOK(82F00CE8)
 {
-    static std::atomic<int> once{ 0 }, logged{ 0 };
+    static std::atomic<int> once{ 0 };
+    static std::atomic<int> logged{ 0 };
     const std::string name = GuestString16(ctx.r5.u32);
+    
     if (logged++ < 400)
+    {
         LOGW("procedure: %s (from %08X on '%s')", name.c_str(), uint32_t(ctx.lr), crash::CurrentThreadName());
+    }
+        
     if (name == "Intro/ProcInstall" && once++ == 0)
     {
         const char text[] = "FirstFlow/ProcSystemDataSave";
@@ -82,7 +91,6 @@ GUEST_HOOK(82F00CE8)
     GUEST_ORIG(82F00CE8)(ctx, base);
 }
 
-
 // D3D's ring kicks (they store CP_RB_WPTR). See gpu::WaitAfterKick: while kits
 // are being composed, the CPU waits for the command processor after each kick,
 // so a resolve's write-back lands before the title reuses its memory.
@@ -91,6 +99,7 @@ GUEST_HOOK(823F64B8)
     GUEST_ORIG(823F64B8)(ctx, base);
     gpu::WaitAfterKick();
 }
+
 GUEST_HOOK(8240CD00)
 {
     GUEST_ORIG(8240CD00)(ctx, base);
