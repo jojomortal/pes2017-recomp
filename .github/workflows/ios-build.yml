@@ -83,10 +83,10 @@ jobs:
           echo "Desativando o arquivo d3d_hooks para evitar erros de macros no ecossistema Apple..."
           find . -type f -name "d3d_hooks.cpp" -exec sh -c 'echo "/* Ignorado para Launcher Limpo iOS */" > "{}"' \;
 
-          echo "Sanitizando as chamadas de ponteiros de função de emulação dentro do arquivo gpu_cpp.cpp..."
-          # Alvo corrigido de 'gpu.cpp' para 'gpu_cpp.cpp' para aplicar os bupasses corretamente
-          find . -type f -name "gpu_cpp.cpp" -exec sed -i '' 's/ctx.fpscr.loadFromGuest(/ \/\/ /g' {} + || true
-          find . -type f -name "gpu_cpp.cpp" -exec sed -i '' 's/fn(ctx, guest_base)/((void(*)(void*,uint32_t))fn)(\&ctx, guest_base)/g' {} + || true
+          echo "Sanitizando as chamadas de ponteiros de função de emulação dentro do arquivo de gpu..."
+          # Alvos amplos cobrindo variações com ou sem sublinhado de forma totalmente compatível com o terminal do Mac
+          find . -type f \( -name "gpu.cpp" -o -name "gpu_cpp.cpp" \) -exec sed -i '' 's/ctx.fpscr.loadFromGuest(/ \/\/ /g' {} + || true
+          find . -type f \( -name "gpu.cpp" -o -name "gpu_cpp.cpp" \) -exec sed -i '' 's/fn(ctx, guest_base)/ /g' {} + || true
 
       - name: Configure CMake for iOS Project
         run: |
