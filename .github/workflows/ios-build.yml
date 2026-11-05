@@ -52,6 +52,14 @@ jobs:
             echo "    PPCReg r31; PPCReg r32;" >> "$dir/ppc_recomp_shared.h"
             echo "    PPCReg lr; PPCReg ctr; PPCReg xer; PPCReg fpscr;" >> "$dir/ppc_recomp_shared.h"
             echo "    uint32_t lr_gpr; uint32_t msr;" >> "$dir/ppc_recomp_shared.h"
+            echo "};" >> "$dir/ppc_recomp_shared.h"
+            
+            echo "typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);" >> "$dir/ppc_recomp_shared.h"
+            echo "#endif" >> "$dir/ppc_recomp_shared.h"
+
+            echo "#ifndef PPC_CONFIG_H" > "$dir/ppc_config.h"
+            echo "#define PPC_CONFIG_H" >> "$dir/ppc_config.h"
+            echo "#endif" >> "$dir/ppc_config.h"
           done
           
           # Suprime os erros de arquivos de mídia ausentes nos arquivos de configuração do CMake
@@ -77,8 +85,6 @@ jobs:
         run: |
           cd build_ios
           rm -rf *
-          
-          # As definições de bypass foram movidas para dentro do formato interno do CMake usando escapes de aspas duplas, limpando a linha de comando do terminal
           cmake .. \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_SYSROOT=iphoneos \
@@ -86,8 +92,8 @@ jobs:
             -DPES17_USE_METAL=ON \
             -DENABLE_AUDIO_DISABLED=ON \
             -DENABLE_AUDIO_SDL=OFF \
-            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)=" \
-            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -Dfn\(ctx,guest_base\)=0"
+            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1" \
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)="
 
       - name: Compile and Archive App
         run: |
