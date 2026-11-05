@@ -34,8 +34,8 @@ jobs:
           
           # Gera os arquivos simulados exigidos pelo CMake e estruturas de hardware básicas
           for dir in "ppc" "pes2017-recomp/ppc" "pes2017_recomp/ppc" "pes2017-recomp/pes2017-recomp/ppc" "pes2017-recomp/pes2017_recomp/ppc" "pes2017_recomp/pes2017-recomp/ppc" "pes2017_recomp/pes2017_recomp/ppc"; do
-            echo "// Mock" > "$dir/ppc_func_mapping.cpp"
-            echo "// Mock" > "$dir/stubs_generated.cpp"
+            echo "/* Mock */" > "$dir/ppc_func_mapping.cpp"
+            echo "/* Mock */" > "$dir/stubs_generated.cpp"
             
             echo "#ifndef PPC_RECOMP_SHARED_H" > "$dir/ppc_recomp_shared.h"
             echo "#define PPC_RECOMP_SHARED_H" >> "$dir/ppc_recomp_shared.h"
@@ -47,7 +47,6 @@ jobs:
             echo "    PPCReg r1; PPCReg r2; PPCReg r3; PPCReg r4; PPCReg r5;" >> "$dir/ppc_recomp_shared.h"
             echo "    PPCReg r11; PPCReg r12; PPCReg r31; PPCReg r32;" >> "$dir/ppc_recomp_shared.h"
             echo "    PPCReg lr; PPCReg ctr; PPCReg xer; PPCReg fpscr;" >> "$dir/ppc_recomp_shared.h"
-            // Garante que campos extras esperados por macros nativas não quebrem a estrutura básica
             echo "    uint32_t lr_gpr; uint32_t msr;" >> "$dir/ppc_recomp_shared.h"
             echo "};" >> "$dir/ppc_recomp_shared.h"
             
@@ -65,8 +64,8 @@ jobs:
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message("pes\/default.xex is missing/message(STATUS "pes\/default.xex is missing/g' {} + || true
 
           echo "Desativando dependências de áudio nativo Android e relatórios de crash de baixo nível..."
-          find . -name "audio.cpp" -exec sh -c 'echo "// Desativado para o build iOS" > "{}"' \;
-          find . -name "crash.cpp" -exec sh -c 'echo "// Desativado para evitar travas de baixo nivel no iOS" > "{}"' \;
+          find . -name "audio.cpp" -exec sh -c 'echo "/* Desativado para o build iOS */" > "{}"' \;
+          find . -name "crash.cpp" -exec sh -c 'echo "/* Desativado para evitar travas de baixo nivel no iOS */" > "{}"' \;
 
           echo "Injetando definições de compatibilidade funcional diretamente no topo do command_processor..."
           find . -type f -name "command_processor.cpp" -exec sed -i '' '1i\
@@ -78,7 +77,6 @@ jobs:
       - name: Configure CMake for iOS Project
         run: |
           cd build_ios
-          # Movido o tratamento de macros conflitantes diretamente para as flags globais do CMake (evita rasuras de arquivos textuais)
           cmake .. \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_SYSROOT=iphoneos \
