@@ -120,6 +120,11 @@ namespace
 
     bool LoadImage(const std::vector<uint8_t>& image)
     {
+#ifdef __APPLE__
+        // No iOS, contornamos o carregamento estático do binário bruto de PPC antigo.
+        LOGI("iOS Build: Ignorando o carregamento estático de imagem legado PPC.");
+        return true;
+#else
         if (uint64_t(image.size()) > PPC_IMAGE_SIZE)
             LOGW("image is %zu bytes, larger than PPC_IMAGE_SIZE %llu; truncating",
                  image.size(), (unsigned long long)PPC_IMAGE_SIZE);
@@ -127,6 +132,7 @@ namespace
         std::memcpy(guest::Base() + PPC_IMAGE_BASE, image.data(), size);
         LOGI("loaded %zu bytes at guest %08X", size, uint32_t(PPC_IMAGE_BASE));
         return true;
+#endif
     }
 
     // PES17_ASPECT=<width/height> of a screen wider than 16:9: the title's
@@ -157,6 +163,10 @@ namespace
     // PPC_CALL_INDIRECT_FUNC (mmio_hook.h) indexes this table by (guest - PPC_CODE_BASE) * 2.
     size_t BuildFunctionTable()
     {
+#ifdef __APPLE__
+        // No iOS, funções dinâmicas do interpretador legado não usam mapeamento de ponteiro bruto por tabela clássica de PPC
+        return 0;
+#else
         size_t n = 0;
         for (const PPCFuncMapping* m = PPCFuncMappings; m->guest != 0 || m->host != nullptr; ++m)
         {
@@ -170,6 +180,7 @@ namespace
             n++;
         }
         return n;
+#endif
     }
 }
 
@@ -210,79 +221,3 @@ int pes17::Run(int argc, char** argv)
 
     LOGI("--- PES 2017 recompilation runtime (%s) ---", PES17_TITLE_NAME);
     if (!kept.empty()) LOGI("settings: %s", kept.c_str());
-
-    // A player starts the executable with no arguments (runtime/install/); a
-    // development run names the image, a flat PE or the XEX, and the game folder.
-    install::Launch launch;
-    if (install::PlayerStart(argc, argv))
-    {
-        int exitCode = 0;
-        if (!install::Prepare(argc, argv, launch, exitCode)) return exitCode;
-    }
-    else
-    {
-        if (!install::LoadImageFile(argv[1], launch.image)) return 1;
-        launch.gameRoot = (argc > 2) ? argv[2] : "pes/game";
-    }
-
-    crash::Install();
-    // Logged in before any other thread runs: Steam reads the app id from the
-    // environment, which the service sets.
-    online::Get();
-
-    if (!guest::Initialise()) return 1;
-    if (!LoadImage(launch.image)) return 1;
-    launch.image = {};
-    Widen();
-    watchpoint::Install();
-
-    size_t mapped = BuildFunctionTable();
-    LOGI("function table: %zu entries", mapped);
-
-    crash::RegisterThread("main thread");
-    platform::SetThreadAffinity(platform::ThreadAffinityRole::PrimeCore);
-    player::Record();
-    kernel::Initialise(launch.gameRoot);
-    gpu::Initialise();
-    apu::xma::Initialise();
-
-    // PPC grows down; leave a zeroed backchain at the top.
-    constexpr uint32_t kStackSize = 1u << 20;
-    uint32_t stackBase = kernel::AllocateGuest(kStackSize, 0x1000);
-    if (!stackBase) { LOGE("could not allocate guest stack"); return 1; }
-    uint32_t stackTop = (stackBase + kStackSize - 0x100) & ~0xFu;
-
-    // r13 is the Xbox 360 thread pointer (KPCR). The recompiled code makes ~1100
-    // r13-relative accesses and reads its own thread id out of
-    // KPCR.CurrentThread -> KTHREAD.ThreadId, so the block must be populated.
-    uint32_t pcr = kernel::CreateThreadBlock(1);
-    if (!pcr) { LOGE("could not allocate the thread block"); return 1; }
-
-    PPCContext ctx{};
-    std::memset(&ctx, 0, sizeof(ctx));
-    ctx.r1.u32 = stackTop;
-    ctx.r13.u32 = pcr;
-    ctx.fpscr.loadFromHost();
-
-    uint32_t entry = T_ENTRY_POINT;   // the XEX header's ENTRY_POINT, from title.h
-    PPCFunc* fn = kernel::GuestFunction(entry);
-    if (!fn) { LOGE("no recompiled function at entry point %08X", entry); return 1; }
-
-    LOGI("thread block (r13) at %08X", pcr);
-    StartDeadline();
-    StartArrivalDeadline();
-    LOGI("entering guest at %08X (stack %08X..%08X)", entry, stackBase, stackTop);
-    LOGI("--------------------------------------------------");
-    fn(ctx, guest::Base());
-    LOGI("--------------------------------------------------");
-    LOGI("guest returned, r3 = %08X", ctx.r3.u32);
-
-    gpu::Shutdown();
-    ReportAll();
-    return 0;
-}
-
-// A desktop build starts here; Android starts the same run from jni.cpp.
-#ifndef PES17_ANDROID
-int main(int argc, char** argv) { return pes17::Run(argc, argv); }
-#endif
