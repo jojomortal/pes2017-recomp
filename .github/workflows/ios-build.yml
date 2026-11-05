@@ -41,6 +41,12 @@ jobs:
             echo "#define PPC_RECOMP_SHARED_H" >> "$dir/ppc_recomp_shared.h"
             echo "#include <stdint.h>" >> "$dir/ppc_recomp_shared.h"
             
+            # Transferido as macros complexas com parênteses do CMake para o arquivo header de forma isolada e segura
+            echo "#define SDL_AUDIO_DISABLED 1" >> "$dir/ppc_recomp_shared.h"
+            echo "#define PPC_FUNC_IMPL(name) void name(struct PPCContext* ctx, uint32_t address)" >> "$dir/ppc_recomp_shared.h"
+            echo "#define GUEST_HOOK(name)" >> "$dir/ppc_recomp_shared.h"
+            echo "#define GUEST_ORIG(name)" >> "$dir/ppc_recomp_shared.h"
+            
             echo "typedef union { uint64_t u64; uint32_t u32; } PPCReg;" >> "$dir/ppc_recomp_shared.h"
             
             echo "struct PPCContext {" >> "$dir/ppc_recomp_shared.h"
@@ -77,6 +83,10 @@ jobs:
       - name: Configure CMake for iOS Project
         run: |
           cd build_ios
+          # Remove todo o cache antigo acumulado nas rodadas anteriores
+          rm -rf *
+          
+          # Executa o CMake com flags puramente limpas e textuais, eliminando o erro de token inesperado do terminal do Mac
           cmake .. \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_SYSROOT=iphoneos \
@@ -84,8 +94,8 @@ jobs:
             -DPES17_USE_METAL=ON \
             -DENABLE_AUDIO_DISABLED=ON \
             -DENABLE_AUDIO_SDL=OFF \
-            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DPPC_FUNC_IMPL(x)=void_x(struct_PPCContext*ctx,uint32_t_addr) -DGUEST_HOOK(x)= -DGUEST_ORIG(x)=" \
-            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DPPC_FUNC_IMPL(x)=void_x(struct_PPCContext*ctx,uint32_t_addr) -DGUEST_HOOK(x)= -DGUEST_ORIG(x)="
+            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1" \
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1"
 
       - name: Compile and Archive App
         run: |
