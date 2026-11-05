@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 #include "capture.h"
 #include "../../diagnostics.h"
 
@@ -223,3 +224,4 @@ void vk::capture::Report()
 }
 
 #endif
+#endif // __APPLE__
