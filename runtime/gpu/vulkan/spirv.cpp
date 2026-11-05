@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 #include "spirv.h"
 
 #include <algorithm>
@@ -186,3 +187,4 @@ std::vector<uint32_t> Module::Finish() const
         out.insert(out.end(), section->begin(), section->end());
     return out;
 }
+#endif // __APPLE__
