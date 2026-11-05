@@ -1,15 +1,9 @@
-// The recorder thread and the queue that feeds it. See recorder.h.
-//
-// One ring of bytes, one producer (the ring consumer) and one reader (the
-// recorder). A call is a header and the call's copy of its arguments, placed
-// at the end of the ring and made visible by moving `written` past it; the
-// recorder makes it and moves `made` past it. A call that would run off the
-// end of the ring starts again at the beginning, behind a header that says so.
-//
-// Neither side sleeps while the other is busy: a frame queues a call every
-// microsecond or two, and waking a sleeping thread costs more than that. The
-// recorder spins for a while before it sleeps, which it does between frames.
 #include "recorder.h"
+
+#ifndef __APPLE__
+// =========================================================================
+// BLOCO SE NÃO FOR APPLE (ANDROID / PC ORIGINAL)
+// =========================================================================
 #include "../../diagnostics.h"
 #include "../../crash.h"
 #include "../../env.h"
@@ -23,10 +17,6 @@
 #include <atomic>
 #include <thread>
 
-// The spin hint: pause on x86, yield on arm64. Both tell the core that this
-// loop is waiting for another one, which on a phone's shared cluster is the
-// difference between a spin that costs a rival thread nothing and one that
-// costs it a frame.
 #if defined(__x86_64__) || defined(__i386__)
 #include <immintrin.h>
 #define PES17_SPIN_HINT() _mm_pause()
@@ -45,26 +35,19 @@ namespace vk::record::detail
 namespace
 {
     using vk::record::detail::Header;
-
-    // A frame queues about 2 MB; this is several frames.
     constexpr uint64_t kBytes = 16u << 20;
-    // Pauses before a side sleeps: tens of microseconds.
     constexpr uint32_t kSpins = 4000;
 
-    // Each side's own fields on lines of their own, so neither side's writes
-    // take the other's cache line away from it on every call.
     struct Queue
     {
-        // The producer's.
         uint8_t* ring = nullptr;
-        uint64_t reserved = 0;      // queued, not yet published
-        uint64_t madeSeen = 0;      // `made` as last read, which only grows
+        uint64_t reserved = 0;
+        uint64_t madeSeen = 0;
         uint64_t roomWaits = 0, waits = 0;
         alignas(64) std::atomic<uint64_t> written{ 0 };
         std::atomic<bool> recorderAsleep{ false };
         alignas(64) std::atomic<uint64_t> made{ 0 };
-        std::atomic<uint32_t> waiters{ 0 };         // threads waiting on `made`
-        // The recorder's.
+        std::atomic<uint32_t> waiters{ 0 };
         alignas(64) bool stopping = false;
         std::atomic<uint64_t> calls{ 0 }, sleeps{ 0 };
         std::thread thread;
@@ -94,8 +77,6 @@ namespace
                     more = q.written.load(std::memory_order_relaxed) != at;
                 }
                 if (more) continue;
-                // Asleep before looking once more; the producer publishes before
-                // it looks at this, so one of the two sees the other.
                 q.recorderAsleep.store(true, std::memory_order_seq_cst);
                 if (q.written.load(std::memory_order_seq_cst) == at)
                 {
@@ -232,3 +213,4 @@ void vk::record::Report()
          (unsigned long long)calls, (unsigned long long)q.sleeps.load(),
          (unsigned long long)(q.waits + q.roomWaits), (unsigned long long)q.roomWaits);
 }
+#endif
