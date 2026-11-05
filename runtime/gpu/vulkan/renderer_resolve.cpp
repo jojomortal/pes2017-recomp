@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 #include <sys/resource.h>
 #include <string>
 #include "../../crash.h"
@@ -1124,3 +1125,4 @@ void vk::renderer::Swap(uint32_t frontBuffer)
 }
 
 #endif  // PES17_HAVE_VULKAN
+#endif // __APPLE__
