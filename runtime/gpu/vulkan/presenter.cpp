@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 #include "presenter.h"
 #include "../../diagnostics.h"
 #include "../../env.h"
@@ -1560,3 +1561,4 @@ std::string vk::PresenterReport()
 }
 
 #endif  // PES17_HAVE_VULKAN && PES17_USE_SDL
+#endif // __APPLE__
