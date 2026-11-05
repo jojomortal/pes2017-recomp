@@ -1,5 +1,5 @@
+#ifndef __APPLE__
 #include "display_table.h"
-
 #include "pipeline.h"
 #include "spirv.h"
 #include "../gpu.h"
@@ -426,3 +426,4 @@ void vk::display::Report()
 }
 
 #endif
+#endif // __APPLE__
