@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 // EDRAM surfaces as Vulkan images: making them, reading them back, the
 // rendering instances they are drawn in, and clearing them.
 #include "renderer_state.h"
@@ -980,3 +981,4 @@ namespace vk::renderer::detail
 }
 
 #endif  // PES17_HAVE_VULKAN
+#endif // __APPLE__
