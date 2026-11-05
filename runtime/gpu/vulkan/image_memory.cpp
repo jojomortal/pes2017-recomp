@@ -1,3 +1,4 @@
+#endif // __APPLE__
 #include "image_memory.h"
 
 #ifndef __APPLE__
@@ -12,3 +13,4 @@ namespace vk::imagememory
 }
 
 #endif
+#endif // __APPLE__
