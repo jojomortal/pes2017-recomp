@@ -93,14 +93,17 @@ namespace
         }
         thread_local uint32_t stack = kernel::AllocateGuest(64 * 1024, 0x1000);
         if (!stack) return;
-        PPCContext ctx{};
-        ctx.r1.u32  = (stack + 64 * 1024 - 0x100) & ~0xFu;
-        ctx.r13.u32 = t_guestPcr;
-        ctx.r3.u32  = source;
-        ctx.r4.u32  = g.interruptContext;
-        ctx.fpscr.loadFromHost();
-        fn(ctx, guest::Base());
+              PPCContext ctx;
+    ctx.r1.u32 = (stack + 64 * 1024 - 0x100) & ~0xF;
+    ctx.r13.u32 = t_guestPcr;
+    ctx.r3.u32 = source;
+    ctx.r4.u32 = g_interruptContext;
+
+    if (fn) {
+        (*fn)(&ctx, 0);
     }
+}
+
 
     std::atomic<bool> g_inBatch{ false };
     std::atomic<uint32_t> g_batchAvailable{ 0 };
