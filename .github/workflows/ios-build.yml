@@ -47,6 +47,8 @@ jobs:
             echo "    PPCReg r1; PPCReg r2; PPCReg r3; PPCReg r4; PPCReg r5;" >> "$dir/ppc_recomp_shared.h"
             echo "    PPCReg r11; PPCReg r12; PPCReg r31; PPCReg r32;" >> "$dir/ppc_recomp_shared.h"
             echo "    PPCReg lr; PPCReg ctr; PPCReg xer; PPCReg fpscr;" >> "$dir/ppc_recomp_shared.h"
+            // Garante que campos extras esperados por macros nativas não quebrem a estrutura básica
+            echo "    uint32_t lr_gpr; uint32_t msr;" >> "$dir/ppc_recomp_shared.h"
             echo "};" >> "$dir/ppc_recomp_shared.h"
             
             echo "typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);" >> "$dir/ppc_recomp_shared.h"
@@ -73,27 +75,19 @@ jobs:
           #define PPC_querytimebase() 0\
           ' {} + || true
 
-          echo "Sanitizando macros conflitantes de ganchos gráficos em d3d_hooks.cpp..."
-          # Força a injeção limpa de compatibilidade das macros diretamente no topo do d3d_hooks.cpp
-          find . -type f -name "d3d_hooks.cpp" -exec sed -i '' '1i\
-          #include <stdint.h>\
-          #define PPC_FUNC_IMPL(name) void name(struct PPCContext* ctx, uint32_t address)\
-          #define GUEST_HOOK(name) \
-          #define GUEST_ORIG(name) \
-          ' {} + || true
-
       - name: Configure CMake for iOS Project
         run: |
           cd build_ios
+          # Movido o tratamento de macros conflitantes diretamente para as flags globais do CMake (evita rasuras de arquivos textuais)
           cmake .. \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_SYSROOT=iphoneos \
             -DCMAKE_BUILD_TYPE=Release \
             -DPES17_USE_METAL=ON \
-            -DENABLE_AUDIO_SDL=ON \
-            -DPES17_AUDIO_BACKEND=SDL \
-            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0" \
-            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=0"
+            -DENABLE_AUDIO_DISABLED=ON \
+            -DENABLE_AUDIO_SDL=OFF \
+            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DPPC_FUNC_IMPL(x)=void_x(struct_PPCContext*ctx,uint32_t_addr) -DGUEST_HOOK(x)= -DGUEST_ORIG(x)=" \
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DPPC_FUNC_IMPL(x)=void_x(struct_PPCContext*ctx,uint32_t_addr) -DGUEST_HOOK(x)= -DGUEST_ORIG(x)="
 
       - name: Compile and Archive App
         run: |
