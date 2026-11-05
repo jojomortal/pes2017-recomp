@@ -73,20 +73,12 @@ jobs:
           echo "Desativando o arquivo d3d_hooks para evitar erros de macros no ecossistema Apple..."
           find . -type f -name "d3d_hooks.cpp" -exec sh -c 'echo "/* Ignorado para Launcher Limpo iOS */" > "{}"' \;
 
-          echo "Criando arquivo de cabeçalho forçado global para limpar arquivos gerados em runtime..."
-          # Estrutura limpa que anula as expressões de chamada de função inválidas e métodos do gpu.cpp de forma transparente
-          echo '#ifndef IOS_GLOBAL_BYPASS_H' > forced_bypass.h
-          echo '#define IOS_GLOBAL_BYPASS_H' >> forced_bypass.h
-          echo '#define loadFromGuest()' >> forced_bypass.h
-          echo '#define fn(ctx, guest_base) 0' >> forced_bypass.h
-          echo '#endif' >> forced_bypass.h
-
       - name: Configure CMake for iOS Project
         run: |
           cd build_ios
           rm -rf *
           
-          # Inclusão de flags puramente limpas. Passamos também a instrução de bypass para os testes internos do CMake
+          # As definições de bypass foram movidas para dentro do formato interno do CMake usando escapes de aspas duplas, limpando a linha de comando do terminal
           cmake .. \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_SYSROOT=iphoneos \
@@ -94,9 +86,8 @@ jobs:
             -DPES17_USE_METAL=ON \
             -DENABLE_AUDIO_DISABLED=ON \
             -DENABLE_AUDIO_SDL=OFF \
-            -DCMAKE_REQUIRED_FLAGS="-include ../forced_bypass.h" \
-            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -include ../forced_bypass.h" \
-            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -include ../forced_bypass.h"
+            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)=" \
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -Dfn\(ctx,guest_base\)=0"
 
       - name: Compile and Archive App
         run: |
