@@ -40,12 +40,16 @@ jobs:
             echo "#ifndef PPC_RECOMP_SHARED_H" > "$dir/ppc_recomp_shared.h"
             echo "#define PPC_RECOMP_SHARED_H" >> "$dir/ppc_recomp_shared.h"
             echo "#include <stdint.h>" >> "$dir/ppc_recomp_shared.h"
+            
             echo "typedef union { uint64_t u64; uint32_t u32; } PPCReg;" >> "$dir/ppc_recomp_shared.h"
-            echo "struct PPCContext {" >> "$dir/PPC_RECOMP_SHARED_H"
+            
+            # Correção do PPCContext: Removido erro de digitação de string e completada a estrutura
+            echo "struct PPCContext {" >> "$dir/ppc_recomp_shared.h"
             echo "    PPCReg r1; PPCReg r2; PPCReg r3; PPCReg r4; PPCReg r5;" >> "$dir/ppc_recomp_shared.h"
             echo "    PPCReg r11; PPCReg r12; PPCReg r31; PPCReg r32;" >> "$dir/ppc_recomp_shared.h"
             echo "    PPCReg lr; PPCReg ctr; PPCReg xer; PPCReg fpscr;" >> "$dir/ppc_recomp_shared.h"
             echo "};" >> "$dir/ppc_recomp_shared.h"
+            
             echo "typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);" >> "$dir/ppc_recomp_shared.h"
             echo "#endif" >> "$dir/ppc_recomp_shared.h"
 
@@ -71,7 +75,6 @@ jobs:
           ' {} + || true
 
           echo "Sanitizando macros conflitantes de ganchos gráficos em d3d_hooks.cpp..."
-          # Injeta correções cirúrgicas diretamente no início do d3d_hooks para anular os conflitos com a macro title.h
           find . -type f -name "d3d_hooks.cpp" -exec sed -i '' '1i\
           #include <stdint.h>\
           #define PPC_FUNC_IMPL(name) void name(struct PPCContext* ctx, uint32_t address)\
