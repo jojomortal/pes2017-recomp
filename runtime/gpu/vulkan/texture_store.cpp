@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 // See texture_store.h.
 #include "texture_store.h"
 #include "../texture.h"
@@ -425,3 +426,4 @@ vk::texstore::Stats vk::texstore::Counts()
 }
 
 #endif  // _WIN32
+#endif // __APPLE__
