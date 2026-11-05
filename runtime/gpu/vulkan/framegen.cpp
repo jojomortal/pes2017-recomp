@@ -31,8 +31,15 @@ void vk::framegen::Destroy(VkDevice) {}
 
 #else
 // ============================================================================
-// BLOCO EXCLUSIVO PARA IOS / MAC (C++ PURO - PRONTO PARA MENU DO LAUNCHER)
+// BLOCO EXCLUSIVO PARA IOS / MAC (C++ PURO - TOTALMENTE COMPATÍVEL)
 // ============================================================================
+
+// Definições alternativas dos tipos do Vulkan para o iOS aceitar a compilação sem carregar o Vulkan original
+typedef void* VkDevice;
+typedef void* VkPhysicalDevice;
+typedef void* VkCommandBuffer;
+typedef void* VkImage;
+#define VK_NULL_HANDLE nullptr
 
 bool vk::framegen::Wanted(uint32_t width, double fps) { 
     return g_EnableMetalFX; 
@@ -43,7 +50,7 @@ void vk::framegen::NoteBall(uint64_t s, bool b, float x, float y, float r) {}
 void vk::framegen::Reset() {}
 uint64_t vk::framegen::MadeFrames() { return 0; }
 
-// Função Record adaptada em C++ para aceitar os tipos do cabeçalho sem quebrar o build do iOS
+// Função Record adaptada com os tipos mascarados para o iOS aceitar
 vk::framegen::Result vk::framegen::Record(VkDevice device, VkPhysicalDevice physDevice, VkCommandBuffer cmdBuffer, VkImage image, uint32_t width, uint32_t height,
                                           int64_t timeNs, double delta, uint64_t serial) {
     
