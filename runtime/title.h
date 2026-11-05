@@ -8,7 +8,7 @@
 // // A function entry is the bare hex address, without 0x, so GUEST_HOOK can paste
 // // it onto sub_ / _imp_sub_ / 0x.
 
-#include <ppc_recomp_shared.h>
+#include "pes17.recomp.h"
 
 #define PES17_TITLE_NAME "PES 2017"
 #define T_ENTRY_POINT 0x82416708u        // the XEX header's ENTRY_POINT
