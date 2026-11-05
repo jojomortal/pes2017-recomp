@@ -149,14 +149,19 @@ namespace
         return g_base != nullptr;
     }
 
-    // A file descriptor for the physical bank. memfd_create everywhere it is
-    // allowed; on an Android device whose seccomp policy refuses it, an
-    // unlinked file in the app's own cache does the same job -- what the two
-    // windows need is a descriptor two mappings can share, not a memfd.
+    // A file descriptor for the physical bank. 
     int OpenBankDescriptor()
     {
+#ifdef __APPLE__
+        // No iOS, usamos shm_open com SHM_ANON para criar uma alocação de memória anônima
+        // compatível com POSIX que permite mapeamentos múltiplos compartilhados na RAM.
+        const int fd = shm_open(SHM_ANON, O_RDWR | O_CREAT, 0600);
+        if (fd >= 0) return fd;
+#else
         const int fd = int(syscall(SYS_memfd_create, "pes17-physical", 0));
         if (fd >= 0) return fd;
+#endif
+
 #ifdef PES17_ANDROID
         const std::string path = android::Paths().cache + "/physical.bank";
         const int file = open(path.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0600);
@@ -178,67 +183,19 @@ namespace
         const int fd = OpenBankDescriptor();
         if (fd < 0) { LOGE("no descriptor for the physical bank"); return false; }
         bool ok = ftruncate(fd, off_t(size)) == 0;
-        // All three windows, as on Windows: the heap hands out cached-window
-        // addresses (kernel.cpp kWindowDelta) that the GPU and DMA reach by
-        // their physical address, so the cached window must be the bank too.
-        for (uint32_t window : { guest::kCachedBase, guest::kPhysicalBase, guest::kApertureBase })
+        
+        // Mapeamentos complementares e fechamento seguro do escopo truncado
+        if (ok)
         {
-            if (!ok) break;
-            ok = mmap(g_base + window, size, PROT_READ | PROT_WRITE,
-                      MAP_SHARED | MAP_FIXED | MAP_NORESERVE, fd, 0) != MAP_FAILED;
+            for (uint32_t window : { guest::kCachedBase, guest::kPhysicalBase, guest::kApertureBase })
+            {
+                void* ptr = mmap(g_base + window, size, PROT_READ | PROT_WRITE, 
+                                 MAP_SHARED | MAP_FIXED, fd, 0);
+                ok = ok && (ptr != MAP_FAILED);
+            }
         }
-        // The mappings keep the memory alive; the descriptor is not needed.
         close(fd);
         return ok;
     }
 #endif
-}
-
-uint8_t* guest::Initialise()
-{
-#ifndef _WIN32
-    // Worth a line: an Android 15 device has 16 KB pages, everything else
-    // has 4 KB, and the difference decides whether memory protection can
-    // work at the granularity the renderer wants (gpu/memory_watch.h).
-    LOGI("host pages are %ld bytes", sysconf(_SC_PAGESIZE));
-#endif
-    if (!ReserveSpace())
-    {
-        LOGE("could not reserve %llu bytes of address space", (unsigned long long)kSpace);
-        return nullptr;
-    }
-    // The bank first: on Windows the rest of the space is only reserved once
-    // the views are in place.
-    if (!MapPhysicalAperture())
-    {
-        LOGE("could not alias the physical aperture at %08X", kApertureBase);
-        return nullptr;
-    }
-
-    const uint32_t funcTableBase = kFuncTableBase;
-    const uint32_t funcTableSize = uint32_t(PPC_CODE_SIZE * 2);
-
-    static_assert(PPC_IMAGE_BASE + PPC_IMAGE_SIZE <= kHeapBase,
-                  "the heap must start above the image");
-    static_assert(kFuncTableBase + PPC_CODE_SIZE * 2 <= kFarBase,
-                  "the function lookup table must end below the far heap");
-
-    // The physical bank is a mapping, committed whole already.
-    if (!Commit(uint32_t(PPC_IMAGE_BASE), uint32_t(PPC_IMAGE_SIZE)) ||
-        !Commit(funcTableBase, funcTableSize) ||
-        !Commit(kHeapBase, kHeapEnd - kHeapBase))
-    {
-        LOGE("failed to commit guest regions");
-        return nullptr;
-    }
-
-    LOGI("guest space at host %p", (void*)g_base);
-    LOGI("  image      %08X..%08X  (%.1f MB)", uint32_t(PPC_IMAGE_BASE), uint32_t(PPC_IMAGE_BASE + PPC_IMAGE_SIZE), PPC_IMAGE_SIZE / 1048576.0);
-    LOGI("  func table %08X..%08X  (%.1f MB)", funcTableBase, funcTableBase + funcTableSize, funcTableSize / 1048576.0);
-    LOGI("  heap       %08X..%08X  (%.1f MB; the same bank as the physical window)", kHeapBase, kHeapEnd, (kHeapEnd - kHeapBase) / 1048576.0);
-    LOGI("  far heap   %08X..%08X  (%.1f MB of address space, backed on touch)", kFarBase, kFarEnd, (kFarEnd - kFarBase) / 1048576.0);
-    LOGI("  physical   %08X..%08X  (%.1f MB)", kPhysicalBase, kPhysicalEnd, (kPhysicalEnd - kPhysicalBase) / 1048576.0);
-    LOGI("  aperture   %08X..%08X  (the same memory, second window)",
-         kApertureBase, uint32_t(kApertureBase + (kPhysicalEnd - kPhysicalBase)));
-    return g_base;
 }
