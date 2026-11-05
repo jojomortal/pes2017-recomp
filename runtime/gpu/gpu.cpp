@@ -97,7 +97,7 @@ namespace
     ctx.r1.u32 = (stack + 64 * 1024 - 0x100) & ~0xF;
     ctx.r13.u32 = t_guestPcr;
     ctx.r3.u32 = source;
-    ctx.r4.u32 = g_interruptContext;
+    ctx.r4.u32 = g.interruptContext;
 
     if (fn) {
         (*fn)(&ctx, 0);
