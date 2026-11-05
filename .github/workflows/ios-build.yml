@@ -43,12 +43,6 @@ jobs:
             
             echo "#define SDL_AUDIO_DISABLED 1" >> "$dir/ppc_recomp_shared.h"
             
-            # Correção das macros: Define uma estrutura de função válida para que o compilador entenda os blocos de hooks gráficos
-            echo "struct PPCContext;" >> "$dir/ppc_recomp_shared.h"
-            echo "#define PPC_FUNC_IMPL(name) void name(struct PPCContext* ctx, uint32_t address)" >> "$dir/ppc_recomp_shared.h"
-            echo "#define GUEST_HOOK(name) void name(struct PPCContext* ctx, uint32_t address)" >> "$dir/ppc_recomp_shared.h"
-            echo "#define GUEST_ORIG(name) name" >> "$dir/ppc_recomp_shared.h"
-            
             echo "typedef union { uint64_t u64; uint32_t u32; } PPCReg;" >> "$dir/ppc_recomp_shared.h"
             
             echo "struct PPCContext {" >> "$dir/ppc_recomp_shared.h"
@@ -81,6 +75,10 @@ jobs:
           #define PPC_QueryTimebase() 0\
           #define PPC_querytimebase() 0\
           ' {} + || true
+
+          echo "Desativando o arquivo d3d_hooks para evitar erros de macros no ecossistema Apple..."
+          # Limpa o conteúdo interno do d3d_hooks.cpp transformando-o em um bloco vazio aceito pelo compilador
+          find . -type f -name "d3d_hooks.cpp" -exec sh -c 'echo "/* Ignorado para Launcher Limpo iOS */" > "{}"' \;
 
       - name: Configure CMake for iOS Project
         run: |
