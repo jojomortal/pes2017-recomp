@@ -41,11 +41,13 @@ jobs:
             echo "#define PPC_RECOMP_SHARED_H" >> "$dir/ppc_recomp_shared.h"
             echo "#include <stdint.h>" >> "$dir/ppc_recomp_shared.h"
             
-            # Transferido as macros complexas com parênteses do CMake para o arquivo header de forma isolada e segura
             echo "#define SDL_AUDIO_DISABLED 1" >> "$dir/ppc_recomp_shared.h"
+            
+            # Correção das macros: Define uma estrutura de função válida para que o compilador entenda os blocos de hooks gráficos
+            echo "struct PPCContext;" >> "$dir/ppc_recomp_shared.h"
             echo "#define PPC_FUNC_IMPL(name) void name(struct PPCContext* ctx, uint32_t address)" >> "$dir/ppc_recomp_shared.h"
-            echo "#define GUEST_HOOK(name)" >> "$dir/ppc_recomp_shared.h"
-            echo "#define GUEST_ORIG(name)" >> "$dir/ppc_recomp_shared.h"
+            echo "#define GUEST_HOOK(name) void name(struct PPCContext* ctx, uint32_t address)" >> "$dir/ppc_recomp_shared.h"
+            echo "#define GUEST_ORIG(name) name" >> "$dir/ppc_recomp_shared.h"
             
             echo "typedef union { uint64_t u64; uint32_t u32; } PPCReg;" >> "$dir/ppc_recomp_shared.h"
             
@@ -83,10 +85,7 @@ jobs:
       - name: Configure CMake for iOS Project
         run: |
           cd build_ios
-          # Remove todo o cache antigo acumulado nas rodadas anteriores
           rm -rf *
-          
-          # Executa o CMake com flags puramente limpas e textuais, eliminando o erro de token inesperado do terminal do Mac
           cmake .. \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_SYSROOT=iphoneos \
