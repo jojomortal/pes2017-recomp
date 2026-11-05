@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 // What a draw reads besides its textures -- constants, vertex data, indices --
 // copied out of guest memory and the register file into the frame arena.
 #include "renderer_state.h"
