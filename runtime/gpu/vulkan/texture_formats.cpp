@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 #include "texture_formats.h"
 
 #ifndef PES17_HAVE_VULKAN
@@ -140,3 +141,4 @@ const char* vk::formats::VulkanFormatName(int format)
 }
 
 #endif  // PES17_HAVE_VULKAN
+#endif // __APPLE__
