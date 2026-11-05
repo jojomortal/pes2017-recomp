@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 #include "shader_translator.h"
 #include "bindings.h"
 #include "spirv.h"
@@ -2505,3 +2506,4 @@ std::string shader::Describe(const Translation& result)
                   result.writesMemory ? ", memory export" : "", dropped);
     return text;
 }
+#endif // __APPLE__
