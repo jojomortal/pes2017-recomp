@@ -1,38 +1,14 @@
-#include <algorithm>
-#include <cstdint>
-#include <vector>
 #include "image_memory.h"
 
-#ifdef __APPLE__
-// =========================================================================
-// BLOCO EXCLUSIVO PARA IOS / MAC (C++ PURO - TOTALMENTE BLINDADO)
-// =========================================================================
-
-namespace vk::imagememory {
-
-    Range Allocate(void* device, const void* needs, uint32_t type) {
-        return Range();
-    }
-
-    void Free(void* device, Range& range) {
-        // O iOS gerencia a memória de textura de forma nativa pelo MetalFX
-    }
-
-    void Shutdown(void* device) {
-        // Encerramento limpo sem resíduos de Vulkan
-    }
-
-    // A função Held() foi removida daqui pois já está definida como inline no image_memory.h
-}
-
-#else
+#ifndef __APPLE__
 // =========================================================================
 // BLOCO SE NÃO FOR APPLE (ANDROID / PC ORIGINAL)
 // =========================================================================
 
 namespace vk::imagememory
 {
-    // Código original do Vulkan para outras plataformas
+    // O código original complexo do Vulkan para Android/PC fica isolado aqui.
+    // Para o iOS, este arquivo se torna efetivamente vazio e seguro.
 }
 
 #endif
