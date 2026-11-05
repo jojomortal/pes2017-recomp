@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 // A draw: the render target and pass it goes into, its constants and
 // textures, the fixed-function state, and the command itself.
 #include "renderer_state.h"
@@ -1610,3 +1611,4 @@ void vk::renderer::Draw(const gpu::RegisterFile& r, const DrawCall& call)
 }
 
 #endif  // PES17_HAVE_VULKAN
+#endif // __APPLE__
