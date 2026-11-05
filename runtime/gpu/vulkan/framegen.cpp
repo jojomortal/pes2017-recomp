@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 #include <algorithm>
 #include <cmath>
 #include <atomic>
@@ -72,3 +73,4 @@ void vk::framegen::Destroy(VkDevice device) {
     // Gerenciado de forma autônoma pela engine
 }
 #endif
+#endif // __APPLE__
