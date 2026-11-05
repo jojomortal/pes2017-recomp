@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 #include "pipeline.h"
 #include "bindings.h"
 #include "bc_decoder.h"
@@ -1113,3 +1114,4 @@ bool vk::pipeline::CreateModule(const uint32_t* spirv, size_t words, const char*
 }
 
 #endif  // PES17_HAVE_VULKAN
+#endif // __APPLE__
