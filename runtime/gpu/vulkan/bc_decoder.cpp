@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 #include "bc_decoder.h"
 #include <algorithm>
 #include <array>
@@ -211,3 +212,4 @@ namespace vk::bc
     bool Decompress(const gpu::TextureData& src, uint32_t xenosFormat, gpu::TextureData& dst, int& outVulkanFormat) { return false; }
 }
 #endif
+#endif // __APPLE__
