@@ -1,5 +1,5 @@
+#ifndef __APPLE__
 #include "recorder.h"
-
 #ifndef __APPLE__
 // =========================================================================
 // BLOCO SE NÃO FOR APPLE (ANDROID / PC ORIGINAL)
@@ -214,3 +214,4 @@ void vk::record::Report()
          (unsigned long long)(q.waits + q.roomWaits), (unsigned long long)q.roomWaits);
 }
 #endif
+#endif // __APPLE__
