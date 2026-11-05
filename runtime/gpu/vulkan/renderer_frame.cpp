@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 // Command buffers and their submission: the frame slots, the end of a frame,
 // and the title's occlusion queries, which live and die with the render passes.
 #include "renderer_state.h"
@@ -574,3 +575,4 @@ void vk::renderer::CollectOcclusionQueries(void (*deliver)(uint32_t tag, uint64_
 }
 
 #endif  // PES17_HAVE_VULKAN
+#endif // __APPLE__
