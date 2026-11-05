@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 #include "../../android/android.h"
 #include <cstdio>
 #include <unistd.h>
@@ -2280,3 +2281,4 @@ void vk::textures::Report()
 }
 
 #endif  // PES17_HAVE_VULKAN
+#endif // __APPLE__
