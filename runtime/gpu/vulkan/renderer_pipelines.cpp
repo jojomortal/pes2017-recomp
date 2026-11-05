@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 // Translated shaders, the pipelines built from them, and the shader cache that
 // rebuilds a previous run's pipelines before the title asks for them.
 #include "renderer_state.h"
@@ -979,3 +980,4 @@ namespace vk::renderer::detail
 }
 
 #endif  // PES17_HAVE_VULKAN
+#endif // __APPLE__
