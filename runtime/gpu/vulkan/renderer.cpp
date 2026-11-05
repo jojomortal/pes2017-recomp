@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 // The renderer: the title's draws and resolves, recorded into Vulkan. This
 // file holds its state and brings it up and down; renderer_state.h lists the
 // parts.
@@ -661,3 +662,4 @@ bool vk::renderer::Ready() { return g.ready; }
 void vk::renderer::SetThermalStatus(int status) { g.thermalStatus.store(status, std::memory_order_relaxed); }
 
 #endif  // PES17_HAVE_VULKAN
+#endif // __APPLE__
