@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 // Filling in the pointers loader.h declares.
 #include "loader.h"
 
@@ -160,3 +161,4 @@ void vk::loader::ForgetDevice()
 }
 
 #endif  // PES17_VULKAN_DYNAMIC && PES17_HAVE_VULKAN
+#endif // __APPLE__
