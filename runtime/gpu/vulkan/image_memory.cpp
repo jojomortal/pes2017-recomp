@@ -1,10 +1,6 @@
-#endif // __APPLE__
-#include "image_memory.h"
-
 #ifndef __APPLE__
-// =========================================================================
-// BLOCO SE NÃO FOR APPLE (ANDROID / PC ORIGINAL)
-// =========================================================================
+
+#include "image_memory.h"
 
 namespace vk::imagememory
 {
@@ -12,5 +8,4 @@ namespace vk::imagememory
     // Para o iOS, este arquivo se torna efetivamente vazio e seguro.
 }
 
-#endif
 #endif // __APPLE__
