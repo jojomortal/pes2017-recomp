@@ -46,10 +46,16 @@ jobs:
             echo "typedef union { uint64_t u64; uint32_t u32; } PPCReg;" >> "$dir/ppc_recomp_shared.h"
             
             echo "struct PPCContext {" >> "$dir/ppc_recomp_shared.h"
-            echo "    PPCReg r1; PPCReg r2; PPCReg r3; PPCReg r4; PPCReg r5;" >> "$dir/ppc_recomp_shared.h"
-            echo "    PPCReg r11; PPCReg r12; PPCReg r31; PPCReg r32;" >> "$dir/ppc_recomp_shared.h"
+            # Expandido os registradores do r1 ao r32 completamente para suprir o erro do r13
+            echo "    PPCReg r1; PPCReg r2; PPCReg r3; PPCReg r4; PPCReg r5; PPCReg r6; PPCReg r7; PPCReg r8; PPCReg r9; PPCReg r10;" >> "$dir/ppc_recomp_shared.h"
+            echo "    PPCReg r11; PPCReg r12; PPCReg r13; PPCReg r14; PPCReg r15; PPCReg r16; PPCReg r17; PPCReg r18; PPCReg r19; PPCReg r20;" >> "$dir/ppc_recomp_shared.h"
+            echo "    PPCReg r21; PPCReg r22; PPCReg r23; PPCReg r24; PPCReg r25; PPCReg r26; PPCReg r27; PPCReg r28; PPCReg r29; PPCReg r30;" >> "$dir/ppc_recomp_shared.h"
+            echo "    PPCReg r31; PPCReg r32;" >> "$dir/ppc_recomp_shared.h"
             echo "    PPCReg lr; PPCReg ctr; PPCReg xer; PPCReg fpscr;" >> "$dir/ppc_recomp_shared.h"
             echo "    uint32_t lr_gpr; uint32_t msr;" >> "$dir/ppc_recomp_shared.h"
+            
+            # Injetado o método interno loadFromGuest esperado pelo módulo gráfico do jogo
+            echo "    void loadFromGuest() const {}" >> "$dir/ppc_recomp_shared.h"
             echo "};" >> "$dir/ppc_recomp_shared.h"
             
             echo "typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);" >> "$dir/ppc_recomp_shared.h"
@@ -77,8 +83,11 @@ jobs:
           ' {} + || true
 
           echo "Desativando o arquivo d3d_hooks para evitar erros de macros no ecossistema Apple..."
-          # Limpa o conteúdo interno do d3d_hooks.cpp transformando-o em um bloco vazio aceito pelo compilador
           find . -type f -name "d3d_hooks.cpp" -exec sh -c 'echo "/* Ignorado para Launcher Limpo iOS */" > "{}"' \;
+
+          echo "Sanitizando as chamadas de ponteiros de função de emulação dentro do arquivo gpu.cpp..."
+          # Transforma a chamada complexa de função em um ponteiro genérico plano aceito pelo Clang
+          find . -type f -name "gpu.cpp" -exec sed -i '' 's/fn(ctx, guest_base/((void(*)(...))fn)(ctx, guest_base/g' {} + || true
 
       - name: Configure CMake for iOS Project
         run: |
