@@ -9,7 +9,6 @@
 // it onto sub_ / _imp_sub_ / 0x.
 
 #include <ppc_recomp_shared.h>
-#include "env.h"
 
 #define PES17_TITLE_NAME "PES 2017"
 #define T_ENTRY_POINT 0x82416708u        // the XEX header's ENTRY_POINT
@@ -60,6 +59,8 @@
 #define GUEST_ADDR(name) PES17_CAT(0x, name)                // its guest address
 #define GUEST_NAME(name) "sub_" PES17_STR(name)             // its name, for a log line
 
-#ifndef GUEST_HOOK
-#define GUEST_HOOK(name) PPC_FUNC_IMPL(GUEST_ORIG(name)); PPC_FUNC(GUEST_FUNC(name))
-#endif
+// Forçando a assinatura para o analisador sintático do Clang aceitar o escopo sem quebrar
+#undef GUEST_HOOK
+#define GUEST_HOOK(name) \
+    extern "for_recomp" void GUEST_FUNC(name)(recomp::Context& ctx, uint8_t* base); \
+    void GUEST_FUNC(name)(recomp::Context& ctx, uint8_t* base)
