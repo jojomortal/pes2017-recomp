@@ -1,4 +1,3 @@
-#include "framegen.h"
 #include <algorithm>
 #include <cmath>
 #include <atomic>
@@ -6,6 +5,17 @@
 #include <mutex>
 #include <unistd.h>
 #include <cstdint>
+
+// Injetamos as definições falsas antes do framegen.h para blindar o arquivo de cabeçalho no iOS
+#ifdef __APPLE__
+typedef void* VkDevice;
+typedef void* VkPhysicalDevice;
+typedef void* VkCommandBuffer;
+typedef void* VkImage;
+#define VK_NULL_HANDLE nullptr
+#endif
+
+#include "framegen.h"
 
 // Variável global para controlar pelo menu do Launcher:
 // true = Ativado (Upscaling para melhor FPS) | false = Desativado (Modo Normal)
@@ -34,13 +44,6 @@ void vk::framegen::Destroy(VkDevice) {}
 // BLOCO EXCLUSIVO PARA IOS / MAC (C++ PURO - TOTALMENTE COMPATÍVEL)
 // ============================================================================
 
-// Definições alternativas dos tipos do Vulkan para o iOS aceitar a compilação sem carregar o Vulkan original
-typedef void* VkDevice;
-typedef void* VkPhysicalDevice;
-typedef void* VkCommandBuffer;
-typedef void* VkImage;
-#define VK_NULL_HANDLE nullptr
-
 bool vk::framegen::Wanted(uint32_t width, double fps) { 
     return g_EnableMetalFX; 
 }
@@ -50,7 +53,7 @@ void vk::framegen::NoteBall(uint64_t s, bool b, float x, float y, float r) {}
 void vk::framegen::Reset() {}
 uint64_t vk::framegen::MadeFrames() { return 0; }
 
-// Função Record adaptada com os tipos mascarados para o iOS aceitar
+// Função Record adaptada com os tipos perfeitamente alinhados com o framegen.h
 vk::framegen::Result vk::framegen::Record(VkDevice device, VkPhysicalDevice physDevice, VkCommandBuffer cmdBuffer, VkImage image, uint32_t width, uint32_t height,
                                           int64_t timeNs, double delta, uint64_t serial) {
     
@@ -58,8 +61,6 @@ vk::framegen::Result vk::framegen::Record(VkDevice device, VkPhysicalDevice phys
         return vk::framegen::Result{}; 
     }
 
-    // Ambiente C++ isolado para o Launcher. O acionamento do MetalFX será gerenciado
-    // diretamente pelas camadas nativas do contêiner do iOS (.ipa) para evitar conflitos de compilação.
     return vk::framegen::Result{};
 }
 
