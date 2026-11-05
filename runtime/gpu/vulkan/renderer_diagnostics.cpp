@@ -1,3 +1,4 @@
+#ifndef __APPLE__
 // The switches that look at what the renderer drew -- frame and target dumps,
 // the flash recorder, the traces -- and the report.
 #include <cmath>
@@ -1315,3 +1316,4 @@ void vk::renderer::Report()
 }
 
 #endif  // PES17_HAVE_VULKAN
+#endif // __APPLE__
