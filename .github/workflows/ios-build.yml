@@ -59,7 +59,7 @@ jobs:
           find . -name "crash.cpp" -exec sh -c 'echo "/* Desativado */" > "{}"' \;
           echo 'void xma_dummy_anchor() {}' > runtime/apu/xma.cpp
 
-          echo "Injetando stubs forçados diretamente no topo do motor de execução para o Bundle do iOS..."
+          echo "Injetando stubs unificados no topo do motor de execucao para o Bundle do iOS..."
           find . -type f -name "command_processor.cpp" -exec sed -i '' '1i\
           #include <stdint.h>\
           #include <functional>\
@@ -67,15 +67,14 @@ jobs:
           #define PPC_QueryTimebase() 0\
           #define PPC_querytimebase() 0\
           extern "C" {\
-              void SampleCountEvent(unsigned int a) {}\
-              void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}\
               void _ZN5crash18StopHangingMonitorEv() {}\
               void _ZN6kernel12AcceptInviteEyyPKcb(uint64_t a, uint64_t b, const char* c, bool d) {}\
               void _ZN6kernel14MovePlayerDataEyyy(uint64_t a, uint64_t b, uint64_t c) {}\
               void _ZN6kernel23UpdateTimestampBundleEv() {}\
               void _ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE(unsigned int a, unsigned int b, unsigned int c, void* d) {}\
-              int main(int argc, char* argv[]) { return 0; }\
+              void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}\
           }\
+          int main(int argc, char* argv[]) { return 0; }\
           ' {} + || true
           
           find . -type f -name "d3d_hooks.cpp" -exec sh -c 'echo "/* Ignorado */" > "{}"' \;
