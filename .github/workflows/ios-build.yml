@@ -130,7 +130,7 @@ jobs:
         run: |
           cd build_ios
           rm -rf *
-          cmake .. \
+          cmake .. -G "Unix Makefiles" \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_SYSROOT=iphoneos \
             -DCMAKE_BUILD_TYPE=Release \
@@ -143,4 +143,3 @@ jobs:
       - name: Compile and Archive App
         run: |
           cd build_ios
-          echo "Compilando o motor do jogo puramente otimizado para iOS e Metal API..."
