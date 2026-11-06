@@ -169,11 +169,11 @@ if(ANDROID)
     target_compile_definitions(pes17 PRIVATE ${PES17_ONLINE_DEFINITIONS})
     target_link_libraries(pes17 PRIVATE ppc_recomp log android EGL GLESv3 OpenSLES aaudio)
 else()
-    # Ativação limpa e nativa de App Bundle oficial da Apple para iOS
-    add_executable(pes17 MACOSX_BUNDLE ${RUNTIME_SOURCES} "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp" ${PES17_ONLINE_SOURCES})
+    # Ativação nativa de App Bundle oficial da Apple com extensão .mm fixa mapeada
+    add_executable(pes17 MACOSX_BUNDLE ${RUNTIME_SOURCES} "${CMAKE_SOURCE_DIR}/runtime/kernel/kernel.mm" "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp" ${PES17_ONLINE_SOURCES})
     target_compile_definitions(pes17 PRIVATE ${PES17_ONLINE_DEFINITIONS})
     
-    # Vinculando apenas o núcleo do recompilador e frameworks da própria Apple de forma limpa
+    # Vinculando apenas o núcleo do recompilador e frameworks da Apple
     target_link_libraries(pes17 PRIVATE 
         ppc_recomp 
         "-framework AudioToolbox" 
@@ -182,11 +182,9 @@ else()
         "-framework CoreVideo"
     )
     
-    # PERMISSÃO DINÂMICA DA APPLE: Ignorar os ponteiros órfãos (__imp_) das bibliotecas de rede do Xbox
     if(APPLE)
         target_link_options(pes17 PRIVATE "-Wl,-undefined,dynamic_lookup")
     endif()
     
-    # Incluir o caminho do runtime para que as subpastas localizem o arquivo title.h
     target_include_directories(pes17 PRIVATE "${CMAKE_SOURCE_DIR}/runtime")
 endif()
