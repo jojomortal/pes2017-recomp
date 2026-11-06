@@ -59,8 +59,8 @@
 #define GUEST_ADDR(name) PES17_CAT(0x, name)                // its guest address
 #define GUEST_NAME(name) "sub_" PES17_STR(name)             // its name, for a log line
 
-// Forçando a assinatura para o analisador sintático do Clang aceitar o escopo sem quebrar
+// Mapeamento nativo das macros do gerador para o Clang compilar o escopo cru de pes_hooks.cpp
 #undef GUEST_HOOK
 #define GUEST_HOOK(name) \
-    extern "for_recomp" void GUEST_FUNC(name)(recomp::Context& ctx, uint8_t* base); \
-    void GUEST_FUNC(name)(recomp::Context& ctx, uint8_t* base)
+    extern void GUEST_FUNC(name)(auto& ctx, uint8_t* base); \
+    void GUEST_FUNC(name)(auto& ctx, uint8_t* base)
