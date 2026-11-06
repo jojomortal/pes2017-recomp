@@ -51,20 +51,18 @@ jobs:
             echo "#endif" >> "$dir/ppc_config.h"
           done
           
-          # CRIAÇÃO DO PATCH ISOLADO: Força os nomes internos exatos exigidos pelo Linker da Apple
-          echo '#include <stdint.h>' > ios_linker_patch.cpp
-          echo '#include <functional>' >> ios_linker_patch.cpp
-          echo 'extern "C" {' >> ios_linker_patch.cpp
-          echo '    __attribute__((visibility("default"))) void _ZN5crash18StopHangingMonitorEv() {}' >> ios_linker_patch.cpp
-          echo '    __attribute__((visibility("default"))) void _ZN6kernel12AcceptInviteEyyPKcb(uint64_t a, uint64_t b, const char* c, bool d) {}' >> ios_linker_patch.cpp
-          echo '    __attribute__((visibility("default"))) void _ZN6kernel14MovePlayerDataEyyy(uint64_t a, uint64_t b, uint64_t c) {}' >> ios_linker_patch.cpp
-          echo '    __attribute__((visibility("default"))) void _ZN6kernel23UpdateTimestampBundleEv() {}' >> ios_linker_patch.cpp
-          echo '    __attribute__((visibility("default"))) void _ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE(unsigned int a, unsigned int b, unsigned int c, void* d) {}' >> ios_linker_patch.cpp
-          echo '    __attribute__((visibility("default"))) int main(int argc, char* argv[]) { return 0; }' >> ios_linker_patch.cpp
-          echo '}' >> ios_linker_patch.cpp
-          
-          # Injeta o arquivo do patch dinamicamente dentro da lista de compilação do CMakeLists.txt original
-          find . -name "CMakeLists.txt" -exec sed -i '' 's/\${RUNTIME_SOURCES}/\\\${RUNTIME_SOURCES} \"\${CMAKE_SOURCE_DIR}\/ios_linker_patch.cpp\"/g' {} + || true
+          # Injeta os stubs binários diretamente no final do arquivo físico service.cpp que já está indexado no CMake
+          echo "" >> runtime/online/service.cpp
+          echo '#include <stdint.h>' >> runtime/online/service.cpp
+          echo '#include <functional>' >> runtime/online/service.cpp
+          echo 'extern "C" {' >> runtime/online/service.cpp
+          echo '    __attribute__((visibility("default"))) void _ZN5crash18StopHangingMonitorEv() {}' >> runtime/online/service.cpp
+          echo '    __attribute__((visibility("default"))) void _ZN6kernel12AcceptInviteEyyPKcb(uint64_t a, uint64_t b, const char* c, bool d) {}' >> runtime/online/service.cpp
+          echo '    __attribute__((visibility("default"))) void _ZN6kernel14MovePlayerDataEyyy(uint64_t a, uint64_t b, uint64_t c) {}' >> runtime/online/service.cpp
+          echo '    __attribute__((visibility("default"))) void _ZN6kernel23UpdateTimestampBundleEv() {}' >> runtime/online/service.cpp
+          echo '    __attribute__((visibility("default"))) void _ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE(unsigned int a, unsigned int b, unsigned int c, void* d) {}' >> runtime/online/service.cpp
+          echo '    __attribute__((visibility("default"))) int main(int argc, char* argv[]) { return 0; }' >> runtime/online/service.cpp
+          echo '}' >> runtime/online/service.cpp
           
           # Remove travas de arquivos de mídia ausentes nos CMakeLists
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(FATAL_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
