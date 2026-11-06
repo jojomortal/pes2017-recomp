@@ -95,18 +95,6 @@ file(GLOB RUNTIME_SOURCES CONFIGURE_DEPENDS
      "${CMAKE_SOURCE_DIR}/runtime/gpu/vulkan/*.cpp"
      "${CMAKE_SOURCE_DIR}/runtime/gpu/xe/*.cpp")
 
-# Mapear de forma ampla os cabeçalhos do FFmpeg no ambiente Apple (macOS/iOS)
-if(APPLE)
-    include_directories(
-        "${CMAKE_PREFIX_PATH}/include"
-        "${CMAKE_BINARY_DIR}/include"
-        "${CMAKE_SOURCE_DIR}/third_party/include"
-        "${CMAKE_SOURCE_DIR}/deps/include"
-        "/opt/homebrew/include"
-        "/usr/local/include"
-    )
-endif()
-
 # Xenia's shader interpreter, vendored with shims for the rex/ headers it
 # includes; runs memory-export vertex shaders on the CPU (runtime/gpu/xe).
 set_source_files_properties(
@@ -172,18 +160,15 @@ else()
     add_executable(pes17 ${RUNTIME_SOURCES} "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp" ${PES17_ONLINE_SOURCES})
     target_compile_definitions(pes17 PRIVATE ${PES17_ONLINE_DEFINITIONS})
     
-    # Injetando diretamente os caminhos absolutos das bibliotecas estáticas do FFmpeg instaladas via Homebrew
+    # Vinculando apenas o núcleo do recompilador e frameworks da própria Apple de forma limpa
     target_link_libraries(pes17 PRIVATE 
         ppc_recomp 
-        "/opt/homebrew/lib/libavcodec.dylib"
-        "/opt/homebrew/lib/libavutil.dylib"
-        "/opt/homebrew/lib/libswresample.dylib"
         "-framework AudioToolbox" 
         "-framework VideoToolbox" 
         "-framework CoreMedia"
         "-framework CoreVideo"
     )
     
-    # Incluir o caminho do runtime para que as subpastas (como runtime/gpu) localizem o arquivo title.h
+    # Incluir o caminho do runtime para que as subpastas localizem o arquivo title.h
     target_include_directories(pes17 PRIVATE "${CMAKE_SOURCE_DIR}/runtime")
 endif()
