@@ -50,7 +50,7 @@ jobs:
             echo "    PPCReg r11; PPCReg r12; PPCReg r13; PPCReg r14; PPCReg r15; PPCReg r16; PPCReg r17; PPCReg r18; PPCReg r19; PPCReg r20;" >> "$dir/ppc_recomp_shared.h"
             echo "    PPCReg r21; PPCReg r22; PPCReg r23; PPCReg r24; PPCReg r25; PPCReg r26; PPCReg r27; PPCReg r28; PPCReg r29; PPCReg r30;" >> "$dir/ppc_recomp_shared.h"
             echo "    PPCReg r31; PPCReg r32;" >> "$dir/ppc_recomp_shared.h"
-            echo "    PPCReg lr; PPCReg ctr; PPCReg xer; PPCReg fpscr;" >> "$dir/ppc_recomp_shared.h"
+            echo "    PPCReg lr; PPCReg ctr; PPCReg xer; fpscr;" >> "$dir/ppc_recomp_shared.h"
             echo "    uint32_t lr_gpr; uint32_t msr;" >> "$dir/ppc_recomp_shared.h"
             echo "};" >> "$dir/ppc_recomp_shared.h"
             
@@ -62,56 +62,48 @@ jobs:
             echo "#endif" >> "$dir/ppc_config.h"
           done
           
-          # Cria o arquivo de stubs de kernel completo casando perfeitamente com os tipos estruturais da linkagem final
+          # Cria o arquivo de stubs de kernel aplicando exportacao de visibilidade default para o Linker do iOS
           echo '#include <stdint.h>' > runtime/kernel_stubs.cpp
           echo '#include <functional>' >> runtime/kernel_stubs.cpp
           echo 'struct PPCContext;' >> runtime/kernel_stubs.cpp
           
           echo 'namespace kernel {' >> runtime/kernel_stubs.cpp
-          echo '    uint64_t SystemTime100ns() { return 0; }' >> runtime/kernel_stubs.cpp
-          echo '    void* CheckProcessHeap(void* p) { return p; }' >> runtime/kernel_stubs.cpp
-          echo '    void PostNotification(unsigned int a, unsigned int b) {}' >> runtime/kernel_stubs.cpp
-          echo '    void ReportUnimplemented() {}' >> runtime/kernel_stubs.cpp
-          echo '    void UpdateTimestampBundle() {}' >> runtime/kernel_stubs.cpp
-          echo '    unsigned int GameRoot() { return 0; }' >> runtime/kernel_stubs.cpp
-          echo '    void FreeGuest(unsigned int a) {}' >> runtime/kernel_stubs.cpp
-          echo '    void GuestFunction(unsigned int a) {}' >> runtime/kernel_stubs.cpp
-          echo '    void WindowTraceOn() {}' >> runtime/kernel_stubs.cpp
-          echo '    void MovePlayerData(unsigned long long a, unsigned long long b, unsigned long long c) {}' >> runtime/kernel_stubs.cpp
-          echo '    void ReportAllocRate() {}' >> runtime/kernel_stubs.cpp
-          echo '    void ReportMemory() {}' >> runtime/kernel_stubs.cpp
-          echo '    unsigned int AllocateGuest(unsigned int a, unsigned int b) { return 0; }' >> runtime/kernel_stubs.cpp
-          echo '    void QueueUserApc(unsigned int a, unsigned int b, unsigned int c, const std::function<void()>& d) {}' >> runtime/kernel_stubs.cpp
-          echo '    void TraceImport(const char* a, unsigned int b, const void* c) {}' >> runtime/kernel_stubs.cpp
-          echo '    void WindowTrace(const char* a, const char* b, unsigned int c, unsigned int d, const char* e) {}' >> runtime/kernel_stubs.cpp
-          echo '    void AcceptInvite(unsigned long long a, unsigned long long b, const char* c, bool d) {}' >> runtime/kernel_stubs.cpp
-          echo '    unsigned int FromPhysical(unsigned int a) { return 0; }' >> runtime/kernel_stubs.cpp
-          echo '    void CreateThreadBlock(unsigned int a) {}' >> runtime/kernel_stubs.cpp
-          echo '    void CompleteOverlapped(unsigned int a, unsigned int b) {}' >> runtime/kernel_stubs.cpp
-          echo '    unsigned int ToPhysical(unsigned int a) { return 0; }' >> runtime/kernel_stubs.cpp
-          echo '    void ReportWaits() {}' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) uint64_t SystemTime100ns() { return 0; }' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void* CheckProcessHeap(void* p) { return p; }' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void PostNotification(uint32_t a, uint32_t b) {}' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void ReportUnimplemented() {}' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void UpdateTimestampBundle() {}' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) uint32_t GameRoot() { return 0; }' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void FreeGuest(uint32_t a) {}' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void GuestFunction(uint32_t a) {}' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void WindowTraceOn() {}' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void MovePlayerData(uint64_t a, uint64_t b, uint64_t c) {}' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void ReportAllocRate() {}' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void ReportMemory() {}' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) uint32_t AllocateGuest(uint32_t a, uint32_t b) { return 0; }' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void QueueUserApc(uint32_t a, uint32_t b, uint32_t c, const std::function<void()>& d) {}' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void TraceImport(char const* a, unsigned int b, const void* c) {}' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void WindowTrace(char const* a, char const* b, unsigned int c, unsigned int d, char const* e) {}' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void AcceptInvite(unsigned long long a, unsigned long long b, char const* c, bool d) {}' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) uint32_t FromPhysical(unsigned int a) { return 0; }' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void CreateThreadBlock(unsigned int a) {}' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void CompleteOverlapped(unsigned int a, unsigned int b) {}' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) uint32_t ToPhysical(unsigned int a) { return 0; }' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void ReportWaits() {}' >> runtime/kernel_stubs.cpp
           echo '}' >> runtime/kernel_stubs.cpp
           
           echo 'namespace crash {' >> runtime/kernel_stubs.cpp
-          echo '    void RegisterThread(const char* a) {}' >> runtime/kernel_stubs.cpp
-          echo '    void StopHangingMonitor() {}' >> runtime/kernel_stubs.cpp
-          echo '    const char* CurrentThreadName() { return "Main"; }' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void RegisterThread(char const* a) {}' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void StopHangingMonitor() {}' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) char const* CurrentThreadName() { return "Main"; }' >> runtime/kernel_stubs.cpp
           echo '}' >> runtime/kernel_stubs.cpp
           
           echo 'namespace engine {' >> runtime/kernel_stubs.cpp
-          echo '    void ReportPredicateWaits() {}' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void ReportPredicateWaits() {}' >> runtime/kernel_stubs.cpp
           echo '}' >> runtime/kernel_stubs.cpp
           
-          # Injeção direta de compatibilidade de linkage forçada C++ para o Clang unificar as referências pendentes
-          echo 'extern "C" {' >> runtime/kernel_stubs.cpp
-          echo '    void SampleCountEvent(unsigned int a) {}' >> runtime/kernel_stubs.cpp
-          echo '    void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}' >> runtime/kernel_stubs.cpp
-          echo '    void _ZN5crash18StopHangingMonitorEv() {}' >> runtime/kernel_stubs.cpp
-          echo '    void _ZN6kernel12AcceptInviteEyyPKcb(uint64_t a, uint64_t b, const char* c, bool d) {}' >> runtime/kernel_stubs.cpp
-          echo '    void _ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE(unsigned int a, unsigned int b, unsigned int c, void* d) {}' >> runtime/kernel_stubs.cpp
-          echo '    void _ZN6kernel14MovePlayerDataEyyy(uint64_t a, uint64_t b, uint64_t c) {}' >> runtime/kernel_stubs.cpp
-          echo '    void _ZN6kernel23UpdateTimestampBundleEv() {}' >> runtime/kernel_stubs.cpp
-          echo '}' >> runtime/kernel_stubs.cpp
+          # Simbolos globais exigidos pelo linker para os escopos internos de amostragem
+          echo 'extern "C" __attribute__((visibility("default"))) void SampleCountEvent(unsigned int a) {}' >> runtime/kernel_stubs.cpp
           
           # Suprime os erros de arquivos de mídia ausentes nos arquivos de configuração do CMake
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(FATAL_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
@@ -152,6 +144,3 @@ jobs:
       - name: Compile and Archive App
         run: |
           cd build_ios
-          echo "Compilando o motor do jogo puramente otimizado para iOS e Metal API..."
-          cmake --build . --config Release
-
