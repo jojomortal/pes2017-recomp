@@ -14,6 +14,11 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Install System Dependencies (FFmpeg & Pkg-Config)
+        run: |
+          echo "Instalando dependencias de decodificacao de audio essenciais para o launcher limpo..."
+          brew install ffmpeg pkg-config
+
       - name: Install Vulkan SDK
         uses: jakoch/install-vulkan-sdk-action@v1
         with:
@@ -52,7 +57,7 @@ jobs:
             echo "    PPCReg r31; PPCReg r32;" >> "$dir/ppc_recomp_shared.h"
             echo "    PPCReg lr; PPCReg ctr; PPCReg xer; PPCReg fpscr;" >> "$dir/ppc_recomp_shared.h"
             echo "    uint32_t lr_gpr; uint32_t msr;" >> "$dir/ppc_recomp_shared.h"
-            echo "};" >> "$dir/ppc_recomp_shared.h"
+            };" >> "$dir/ppc_recomp_shared.h"
             
             echo "typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);" >> "$dir/ppc_recomp_shared.h"
             echo "#endif" >> "$dir/ppc_recomp_shared.h"
@@ -92,8 +97,8 @@ jobs:
             -DPES17_USE_METAL=ON \
             -DENABLE_AUDIO_DISABLED=ON \
             -DENABLE_AUDIO_SDL=OFF \
-            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1" \
-            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)="
+            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -I/opt/homebrew/include" \
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -I/opt/homebrew/include"
 
       - name: Compile and Archive App
         run: |
