@@ -25,18 +25,18 @@ namespace kernel {
     __attribute__((visibility("default"))) uint32_t ToPhysical(unsigned int a) { return 0; }
     __attribute__((visibility("default"))) uint32_t FromPhysical(unsigned int a) { return 0; }
 
-    // 2. Mocks de Kernel com as assinaturas exatas e tipos de dados do arquivo kernel.h
-    __attribute__((weak)) uint32_t AllocateGuest(unsigned int a, unsigned int b) { return 0; }
-    __attribute__((weak)) void MovePlayerData(unsigned long long a, unsigned long long b, unsigned long long c) {}
-    __attribute__((weak)) void PostNotification(unsigned int a, unsigned int b) {}
-    __attribute__((weak)) void UpdateTimestampBundle() {}
-    __attribute__((weak)) const std::filesystem::path& GameRoot() { static std::filesystem::path p; return p; }
+    // 2. Mocks de Kernel com linkage fraco e visibilidade pública forçada para o Linker arm64
+    __attribute__((weak, visibility("default"))) uint32_t AllocateGuest(unsigned int a, unsigned int b) { return 0; }
+    __attribute__((weak, visibility("default"))) void MovePlayerData(unsigned long long a, unsigned long long b, unsigned long long c) {}
+    __attribute__((weak, visibility("default"))) void PostNotification(unsigned int a, unsigned int b) {}
+    __attribute__((weak, visibility("default"))) void UpdateTimestampBundle() {}
+    __attribute__((weak, visibility("default"))) const std::filesystem::path& GameRoot() { static std::filesystem::path p; return p; }
 
-    // Correções cirúrgicas de tipos (casando 100% com o tipo de retorno PPCFunc* exigido pelo Clang)
-    __attribute__((weak)) PPCFunc* GuestFunction(uint32_t address) { return nullptr; }
-    __attribute__((weak)) bool CheckProcessHeap(bool quiet) { return true; }
-    __attribute__((weak)) uint32_t CreateThreadBlock(uint32_t threadid) { return 0; }
-    __attribute__((weak)) bool FreeGuest(uint32_t address) { return true; }
+    // Correções cirúrgicas de tipos com visibilidade aberta para a linkagem externa
+    __attribute__((weak, visibility("default"))) PPCFunc* GuestFunction(uint32_t address) { return nullptr; }
+    __attribute__((weak, visibility("default"))) bool CheckProcessHeap(bool quiet) { return true; }
+    __attribute__((weak, visibility("default"))) uint32_t CreateThreadBlock(uint32_t threadid) { return 0; }
+    __attribute__((weak, visibility("default"))) bool FreeGuest(uint32_t address) { return true; }
 }
 
 namespace crash {
