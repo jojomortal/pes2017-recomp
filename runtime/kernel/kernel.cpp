@@ -25,16 +25,18 @@ namespace kernel {
     __attribute__((visibility("default"))) uint32_t ToPhysical(unsigned int a) { return 0; }
     __attribute__((visibility("default"))) uint32_t FromPhysical(unsigned int a) { return 0; }
 
-    // 2. Mocks de Kernel com linkage fraco (__attribute__((weak))) para evitar erros de redefinição
+    // 2. Mocks de Kernel com as assinaturas exatas e tipos de dados do arquivo kernel.h
     __attribute__((weak)) uint32_t AllocateGuest(unsigned int a, unsigned int b) { return 0; }
-    __attribute__((weak)) void GuestFunction(unsigned int a) {}
     __attribute__((weak)) void MovePlayerData(unsigned long long a, unsigned long long b, unsigned long long c) {}
-    __attribute__((weak)) void* CheckProcessHeap(bool p) { return nullptr; }
     __attribute__((weak)) void PostNotification(unsigned int a, unsigned int b) {}
-    __attribute__((weak)) void CreateThreadBlock(unsigned int a) {}
     __attribute__((weak)) void UpdateTimestampBundle() {}
     __attribute__((weak)) const std::filesystem::path& GameRoot() { static std::filesystem::path p; return p; }
-    __attribute__((weak)) void FreeGuest(unsigned int a) {}
+
+    // Correções cirúrgicas de tipos (casando 100% com o log do Clang)
+    __attribute__((weak)) void GuestFunction(uint32_t address) {}
+    __attribute__((weak)) bool CheckProcessHeap(bool quiet) { return true; }
+    __attribute__((weak)) uint32_t CreateThreadBlock(uint32_t threadid) { return 0; }
+    __attribute__((weak)) bool FreeGuest(uint32_t address) { return true; }
 }
 
 namespace crash {
