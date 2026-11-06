@@ -21,7 +21,7 @@ jobs:
 
       - name: Bypass, Configure, Compile and Package Launcher
         run: |
-          echo "1. Criando stubs e simulacoes estruturais basicas..."
+          echo "1. Criando stubs e simulacoes estruturais..."
           mkdir -p ppc pes
           rm -rf build_ios
           mkdir -p build_ios
@@ -51,6 +51,35 @@ jobs:
             echo "#endif" >> "$dir/ppc_config.h"
           done
           
+          # Sobrescreve o service.cpp embutindo o Loop de Vida Nativo da Apple CFRunLoop para prender a execucao
+          cat << 'EOF' > runtime/online/service.cpp
+          #include <stdint.h>
+          #include <functional>
+          
+          // Importa a biblioteca nativa de ciclo de vida do ecossistema Apple
+          extern "C" {
+              void CFRunLoopRun(void);
+          }
+          
+          void online_service_dummy() {}
+          
+          extern "C" {
+              // Stubs do Kernel e GPU unificados de visibilidade aberta
+              __attribute__((visibility("default"))) void _ZN5crash18StopHangingMonitorEv() {}
+              __attribute__((visibility("default"))) void _ZN6kernel12AcceptInviteEyyPKcb(uint64_t a, uint64_t b, const char* c, bool d) {}
+              __attribute__((visibility("default"))) void _ZN6kernel14MovePlayerDataEyyy(uint64_t a, uint64_t b, uint64_t c) {}
+              __attribute__((visibility("default"))) void _ZN6kernel23UpdateTimestampBundleEv() {}
+              __attribute__((visibility("default"))) void _ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE(unsigned int a, unsigned int b, unsigned int c, void* d) {}
+              
+              // Ponto de entrada que prende o Launcher aberto no iPhone para forcá-lo a criar a pasta publica
+              __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
+                  // Inicia o loop infinito nativo regulamentado da Apple; o app fica ativo ate o usuario fechar manualmente
+                  CFRunLoopRun();
+                  return 0;
+              }
+          }
+          EOF
+          
           # Remove travas de arquivos de mídia ausentes nos CMakeLists
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(FATAL_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(SEND_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
@@ -78,17 +107,17 @@ jobs:
             -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
             -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
 
-          echo "3. Compilando o executavel Bundle..."
+          echo "3. Compilando o executavel..."
           make pes17
 
-          echo "4. Montando a estrutura Payload do IPA de forma nativa..."
+          echo "4. Montando a estrutura Payload do IPA de forma garantida..."
           cd ..
           mkdir -p Payload
           
-          # Copia a pasta .app completa gerada pelo CMake nativamente para o Payload do iOS
+          # Copia a pasta .app (Bundle completo) gerada nativamente pelo CMake para o Payload do iOS
           find build_ios -name "*.app" -type d -exec cp -r {} Payload/ \;
           
-          # Injeta as permissões cruciais de compartilhamento e abertura de documentos no Info.plist nativo embutido
+          # Injeta os metadados cruciais de compartilhamento de arquivos no Info.plist embutido
           find Payload -name "Info.plist" -type f -exec sh -c 'sed -i "" "/<\/dict>/i\\\\\\\n<key>UIFileSharingEnabled<\/key><true\/>\\\n<key>LSSupportsOpeningDocumentsInPlace<\/key><true\/>" "{}"' \;
 
           zip -r pes2017_unsigned.ipa Payload
