@@ -62,6 +62,18 @@ jobs:
             echo "#endif" >> "$dir/ppc_config.h"
           done
           
+          # Cria o arquivo de stubs globais de Kernel simulando as chamadas ausentes da engine limpa
+          echo '#include <stdint.h>' > runtime/kernel_stubs.cpp
+          echo 'namespace kernel {' >> runtime/kernel_stubs.cpp
+          echo '    uint64_t SystemTime100ns() { return 0; }' >> runtime/kernel_stubs.cpp
+          echo '    void* CheckProcessHeap(void* p) { return p; }' >> runtime/kernel_stubs.cpp
+          echo '    void PostNotification(uint32_t a, uint32_t b) {}' >> runtime/kernel_stubs.cpp
+          echo '    void ReportUnimplemented() {}' >> runtime/kernel_stubs.cpp
+          echo '    void UpdateTimestampBundle() {}' >> runtime/kernel_stubs.cpp
+          echo '    uint32_t GameRoot() { return 0; }' >> runtime/kernel_stubs.cpp
+          echo '    void FreeGuest(uint32_t a) {}' >> runtime/kernel_stubs.cpp
+          echo '}' >> runtime/kernel_stubs.cpp
+          
           # Suprime os erros de arquivos de mídia ausentes nos arquivos de configuração do CMake
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(FATAL_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(SEND_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
