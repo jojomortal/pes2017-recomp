@@ -51,6 +51,17 @@ jobs:
             echo "#endif" >> "$dir/ppc_config.h"
           done
           
+          # Escreve fisicamente o arquivo kernel_stubs_ios.cpp com linkage C forçado de visibilidade default
+          echo '#include <stdint.h>' > runtime/kernel_stubs_ios.cpp
+          echo 'extern "C" {' >> runtime/kernel_stubs_ios.cpp
+          echo '    __attribute__((visibility("default"))) void _ZN5crash18StopHangingMonitorEv() {}' >> runtime/kernel_stubs_ios.cpp
+          echo '    __attribute__((visibility("default"))) void _ZN6kernel12AcceptInviteEyyPKcb(uint64_t a, uint64_t b, const char* c, bool d) {}' >> runtime/kernel_stubs_ios.cpp
+          echo '    __attribute__((visibility("default"))) void _ZN6kernel14MovePlayerDataEyyy(uint64_t a, uint64_t b, uint64_t c) {}' >> runtime/kernel_stubs_ios.cpp
+          echo '    __attribute__((visibility("default"))) void _ZN6kernel23UpdateTimestampBundleEv() {}' >> runtime/kernel_stubs_ios.cpp
+          echo '    __attribute__((visibility("default"))) void _ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE(unsigned int a, unsigned int b, unsigned int c, void* d) {}' >> runtime/kernel_stubs_ios.cpp
+          echo '    int main(int argc, char* argv[]) { return 0; }' >> runtime/kernel_stubs_ios.cpp
+          echo '}' >> runtime/kernel_stubs_ios.cpp
+          
           # Remove travas de arquivos de mídia ausentes nos CMakeLists
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(FATAL_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(SEND_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
@@ -59,23 +70,11 @@ jobs:
           find . -name "crash.cpp" -exec sh -c 'echo "/* Desativado */" > "{}"' \;
           echo 'void xma_dummy_anchor() {}' > runtime/apu/xma.cpp
 
-          echo "Injetando stubs com visibilidade global forçada extern C para o App Bundle..."
           find . -type f -name "command_processor.cpp" -exec sed -i '' '1i\
-          #include <stdint.h>\
-          #include <functional>\
           #define PPC_QueryTimeBase() 0\
           #define PPC_QueryTimebase() 0\
           #define PPC_querytimebase() 0\
-          extern "C" {\
-              __attribute__((visibility("default"))) void _ZN5crash18StopHangingMonitorEv() {}\
-              __attribute__((visibility("default"))) void _ZN6kernel12AcceptInviteEyyPKcb(uint64_t a, uint64_t b, const char* c, bool d) {}\
-              __attribute__((visibility("default"))) void _ZN6kernel14MovePlayerDataEyyy(uint64_t a, uint64_t b, uint64_t c) {}\
-              __attribute__((visibility("default"))) void _ZN6kernel23UpdateTimestampBundleEv() {}\
-              __attribute__((visibility("default"))) void _ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE(unsigned int a, unsigned int b, unsigned int c, void* d) {}\
-          }\
-          int main(int argc, char* argv[]) { return 0; }\
           ' {} + || true
-          
           find . -type f -name "d3d_hooks.cpp" -exec sh -c 'echo "/* Ignorado */" > "{}"' \;
 
           echo "2. Configurando o ambiente CMake limpo..."
