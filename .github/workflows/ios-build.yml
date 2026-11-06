@@ -14,11 +14,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install System Dependencies (FFmpeg & Pkg-Config)
-        run: |
-          echo "Instalando dependencias de decodificacao de audio essenciais para o launcher limpo..."
-          brew install ffmpeg pkg-config
-
       - name: Install Vulkan SDK
         uses: jakoch/install-vulkan-sdk-action@v1
         with:
@@ -75,11 +70,9 @@ jobs:
           echo "Desativando dependencias de audio nativo Android e relatorios de crash de baixo nivel..."
           find . -name "audio.cpp" -exec sh -c 'echo "/* Desativado para o build iOS */" > "{}"' \;
           find . -name "crash.cpp" -exec sh -c 'echo "/* Desativado para evitar travas de baixo nivel no iOS */" > "{}"' \;
-
-          echo "Injetando compatibilidade para FFmpeg moderno no arquivo xma.cpp..."
-          find . -type f -name "xma.cpp" -exec sed -i '' '1i\
-          #define AV_CODEC_ID_XMAFRAMES AV_CODEC_ID_XMA2\
-          ' {} + || true
+          
+          echo "Suprimindo chamadas externas de codec do arquivo xma.cpp para permitir linkagem nativa..."
+          find . -type f -name "xma.cpp" -exec sh -c 'echo "/* Stub de Audio para Launcher Limpo */" > "{}"' \;
 
           echo "Injetando definicoes de compatibilidade funcional diretamente no topo do command_processor..."
           find . -type f -name "command_processor.cpp" -exec sed -i '' '1i\
@@ -102,8 +95,8 @@ jobs:
             -DPES17_USE_METAL=ON \
             -DENABLE_AUDIO_DISABLED=ON \
             -DENABLE_AUDIO_SDL=OFF \
-            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -I/opt/homebrew/include -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
-            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -I/opt/homebrew/include -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
+            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
 
       - name: Compile and Archive App
         run: |
