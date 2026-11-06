@@ -6,8 +6,17 @@
 // Estruturas nativas do ecossistema do PES 2017
 struct PPCContext;
 
-// 1. Exportação global de linkage para o ecossistema Apple (iOS) através de escopo C limpo
+// 1. Vinculação pura e direta para funções globais do sistema de frames e crash
 extern "C" {
+    __attribute__((visibility("default"))) void SampleCountEvent(unsigned int a) {}
+    __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
+}
+
+// 2. Mocks de Kernel com visibilidade pública forçada no padrão C++ (Mangled) para o Linker do iOS
+namespace kernel {
+    void Initialise() {}
+    void Shutdown() {}
+
     __attribute__((visibility("default"))) uint64_t SystemTime100ns() { return 0; }
     __attribute__((visibility("default"))) void ReportUnimplemented() {}
     __attribute__((visibility("default"))) void ReportAllocRate() {}
@@ -20,17 +29,8 @@ extern "C" {
     __attribute__((visibility("default"))) void AcceptInvite(unsigned long long a, unsigned long long b, char const* c, bool d) {}
     __attribute__((visibility("default"))) uint32_t ToPhysical(unsigned int a) { return 0; }
     __attribute__((visibility("default"))) uint32_t FromPhysical(unsigned int a) { return 0; }
-    
-    // Vinculação de escopo puro exigida para amostragem de frames da GPU
-    __attribute__((visibility("default"))) void SampleCountEvent(unsigned int a) {}
-    __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
-}
 
-// 2. Mocks das estruturas internas de namespaces exigidas pela engine principal
-namespace kernel {
-    void Initialise() {}
-    void Shutdown() {}
-
+    // Métodos dinâmicos com linkage fraco para evitar qualquer conflito com o gerador automático
     __attribute__((weak, visibility("default"))) uint32_t AllocateGuest(unsigned int a, unsigned int b) { return 0; }
     __attribute__((weak, visibility("default"))) void MovePlayerData(unsigned long long a, unsigned long long b, unsigned long long c) {}
     __attribute__((weak, visibility("default"))) void PostNotification(unsigned int a, unsigned int b) {}
@@ -42,7 +42,6 @@ namespace kernel {
     __attribute__((weak, visibility("default"))) uint32_t CreateThreadBlock(uint32_t threadid) { return 0; }
     __attribute__((weak, visibility("default"))) bool FreeGuest(uint32_t address) { return true; }
     
-    // Fallbacks extras com assinatura C++ caso o linker busque remapeamento estrito
     __attribute__((weak, visibility("default"))) void TraceImport(char const* a, unsigned int b, const PPCContext& c) {}
     __attribute__((weak, visibility("default"))) void QueueUserApc(unsigned int a, unsigned int b, unsigned int c, const std::function<void()>& d) {}
 }
