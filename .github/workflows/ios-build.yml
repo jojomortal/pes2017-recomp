@@ -23,8 +23,6 @@ jobs:
         run: |
           echo "1. Criando stubs e simulacoes estruturais..."
           mkdir -p ppc pes
-          
-          # Limpeza profunda de builds anteriores para evitar cache falso do Linker
           rm -rf build_ios
           mkdir -p build_ios
           
@@ -83,10 +81,12 @@ jobs:
           echo "3. Compilando o executavel..."
           make pes17
 
-          echo "4. Montando a estrutura Payload do IPA..."
+          echo "4. Montando a estrutura Payload do IPA de forma garantida..."
           cd ..
           mkdir -p Payload/pes17.app
-          cp build_ios/pes17 Payload/pes17.app/pes17
+          
+          # Localizador universal para achar o executável pes17 gerado e copiar para a pasta final
+          find build_ios -name "pes17" -type f -exec cp {} Payload/pes17.app/pes17 \;
           chmod +x Payload/pes17.app/pes17
           
           echo '<?xml version="1.0" encoding="UTF-8"?>' > Payload/pes17.app/Info.plist
@@ -110,4 +110,4 @@ jobs:
 
       - name: Post Code Checkout
         run: |
-          echo "Processo finalizado de forma sequencial com sucesso!"
+          echo "Processo finalizado com a geracao completa do IPA!"
