@@ -32,6 +32,12 @@ namespace kernel {
     __attribute__((weak, visibility("default"))) uint32_t CreateThreadBlock(uint32_t threadid) { return 0; }
     __attribute__((weak, visibility("default"))) bool FreeGuest(uint32_t address) { return true; }
     __attribute__((weak, visibility("default"))) void TraceImport(char const* a, unsigned int b, const PPCContext& c) {}
+
+    // Ajuste exato das assinaturas C++ que o linker estava pedindo para casar os mangled names
+    __attribute__((weak, visibility("default"))) void AcceptInvite(unsigned long long a, unsigned long long b, char const* c, bool d) {}
+    __attribute__((weak, visibility("default"))) void MovePlayerData(unsigned long long a, unsigned long long b, unsigned long long c) {}
+    __attribute__((weak, visibility("default"))) void UpdateTimestampBundle() {}
+    __attribute__((weak, visibility("default"))) void QueueUserApc(unsigned int a, unsigned int b, unsigned int c, const std::function<void()>& d) {}
 }
 
 namespace crash {
@@ -44,13 +50,8 @@ namespace engine {
     __attribute__((visibility("default"))) void ReportPredicateWaits() {}
 }
 
-// 3. Forçar as decorações exatas exigidas pelo Linker final (arm64 iOS) via bloco de amarração externa pura
+// 3. Forçar as vinculações puras remanescentes de escopo C exigidas pela GPU
 extern "C" {
     __attribute__((visibility("default"))) void SampleCountEvent(unsigned int a) {}
     __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
-    __attribute__((visibility("default"))) void _ZN5crash18StopHangingMonitorEv() {}
-    __attribute__((visibility("default"))) void _ZN6kernel12AcceptInviteEyyPKcb(uint64_t a, uint64_t b, const char* c, bool d) {}
-    __attribute__((visibility("default"))) void _ZN6kernel14MovePlayerDataEyyy(uint64_t a, uint64_t b, uint64_t c) {}
-    __attribute__((visibility("default"))) void _ZN6kernel23UpdateTimestampBundleEv() {}
-    __attribute__((visibility("default"))) void _ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE(unsigned int a, unsigned int b, unsigned int c, void* d) {}
 }
