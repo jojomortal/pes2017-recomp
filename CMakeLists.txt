@@ -42,6 +42,12 @@ set(PES17_PPC_DIR "${CMAKE_SOURCE_DIR}/ppc")
 
 file(GLOB PPC_SOURCES CONFIGURE_DEPENDS "${PES17_PPC_DIR}/ppc_recomp.*.cpp")
 list(APPEND PPC_SOURCES "${PES17_PPC_DIR}/ppc_func_mapping.cpp")
+
+# Forçar a biblioteca de texto iconv nativa no ecossistema da Apple (iOS)
+if(APPLE)
+    link_libraries(iconv)
+endif()
+
 if(NOT PPC_SOURCES)
     message(FATAL_ERROR "${PES17_PPC_DIR} is empty -- run TITLE=${PES17_TITLE} VERSION=${PES17_VERSION} ./build.sh first to generate it")
 endif()
@@ -126,14 +132,7 @@ if(ANDROID)
     endif()
 endif()
 
-# The glue build.sh generates from the recompiled output -- a stub for every
-# kernel import the runtime lacks, a tracing hook for every D3D9 entry point --
-# lives beside that output, since it is different for each title.
 # ---- online service --------------------------------------------------------
-# What the title's network calls reach (runtime/online/service.h): "none" keeps
-# system link on this machine, "lan" is plain UDP between machines, "steam" is
-# Steam, with lan behind it for when Steam is not running. A backend is the one
-# file runtime/online/<name>.cpp; the runtime tries them in service.cpp's order.
 set(PES17_ONLINE "none" CACHE STRING "Online service: none, lan or steam")
 if(PES17_ONLINE STREQUAL "none")
     set(PES17_ONLINE_BACKENDS "")
@@ -153,285 +152,12 @@ foreach(backend ${PES17_ONLINE_BACKENDS})
 endforeach()
 message(STATUS "Online service: ${PES17_ONLINE}")
 
-# On Android there is no process of ours to be the executable: the app's
-# activity is the process, and this is what it loads (libpes17.so, System
-# .loadLibrary("pes17"), runtime/android/jni.cpp). Everywhere else it is the
-# program itself.
 if(ANDROID)
-    add_library(pes17 SHARED ${RUNTIME_SOURCES}
-        "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp"
-        ${PES17_ONLINE_SOURCES}
-        "${PES17_PPC_DIR}/stubs_generated.cpp")
+    add_library(pes17 SHARED ${RUNTIME_SOURCES} "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp" ${PES17_ONLINE_SOURCES})
+    target_compile_definitions(pes17 PRIVATE ${PES17_ONLINE_DEFINITIONS})
+    target_link_libraries(pes17 PRIVATE ppc_recomp log android EGL GLESv3 OpenSLES aaudio)
 else()
-    add_executable(pes17 ${RUNTIME_SOURCES}
-        "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp"
-        ${PES17_ONLINE_SOURCES}
-        "${PES17_PPC_DIR}/stubs_generated.cpp")
-endif()
-target_link_libraries(pes17 PRIVATE ppc_recomp)
-# ppc_recomp_shared.h declares a function taking uint8_t before every includer has <cstdint>.
-target_compile_options(pes17 PRIVATE $<$<COMPILE_LANGUAGE:CXX>:SHELL:-include cstdint>)
-target_compile_definitions(pes17 PRIVATE ${PES17_ONLINE_DEFINITIONS})
-if(PES17_DIAGNOSTICS)
-    target_compile_definitions(pes17 PRIVATE PES17_DIAGNOSTICS=1)
-else()
-    target_compile_definitions(pes17 PRIVATE PES17_DIAGNOSTICS=0)
-endif()
-target_include_directories(pes17 PRIVATE "${CMAKE_SOURCE_DIR}/runtime")
-# The runtime checks the disc's executable against this hash before installing.
-if(NOT PES17_XEX_SHA256_SP)
-    if(EXISTS "${CMAKE_SOURCE_DIR}/pes/default.xex")
-        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/pes/default.xex")
-        file(SHA256 "${CMAKE_SOURCE_DIR}/pes/default.xex" PES17_XEX_SHA256_SP)
-    else()
-        message(FATAL_ERROR "pes/default.xex is missing -- build.sh extracts it from the ISO")
-    endif()
-endif()
-set(PES17_XEX_SHA256_MP "${PES17_XEX_SHA256_SP}")
-set(PES17_DISC_SHA256_SP "${PES17_XEX_SHA256_SP}")
-set(PES17_DISC_SHA256_MP "${PES17_XEX_SHA256_SP}")
-target_compile_definitions(pes17 PRIVATE
-    PES17_XEX_SHA256_SP="${PES17_XEX_SHA256_SP}" PES17_XEX_SHA256_MP="${PES17_XEX_SHA256_MP}"
-    PES17_DISC_SHA256_SP="${PES17_DISC_SHA256_SP}" PES17_DISC_SHA256_MP="${PES17_DISC_SHA256_MP}"
-    PES17_UPDATE_SHA256_PATCH_MP="" PES17_UPDATE_SHA256_DLC1_UI_MP="" PES17_UPDATE_SHA256_DLC2_UI_MP="")
-if(PES17_XENON_INCLUDES)
-    target_include_directories(pes17 PRIVATE ${PES17_XENON_INCLUDES})
-    target_compile_definitions(pes17 PRIVATE PES17_HAVE_XEX_PATCHER=1)
-endif()
-if(WIN32)
-    # One executable with nothing beside it: the C++ runtime and the threads
-    # linked in. The recompiled code nests deep on the host stack, and a thread
-    # Windows starts gets the size the executable asks for: 16 MB, where Linux
-    # gives 8.
-    target_link_libraries(pes17 PRIVATE ws2_32 iphlpapi winmm bcrypt)
-    target_link_options(pes17 PRIVATE -static -Wl,--stack,16777216)
-    # A player's build opens no console window (runtime/platform.cpp).
-    if(NOT PES17_DIAGNOSTICS)
-        target_link_options(pes17 PRIVATE -mwindows)
-    endif()
-elseif(ANDROID)
-    include(cmake/android.cmake)
-else()
-    # -rdynamic so backtrace_symbols can resolve the sub_XXXXXXXX guest functions.
-    set_target_properties(pes17 PROPERTIES ENABLE_EXPORTS ON)
-    target_link_options(pes17 PRIVATE -rdynamic)
-    if(PES17_PORTABLE)
-        target_link_options(pes17 PRIVATE -static-libstdc++ -static-libgcc)
-    endif()
-endif()
-
-if(PES17_USE_SDL)
-    include(FetchContent)
-    FetchContent_Declare(SDL3
-        GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-        GIT_TAG release-3.2.8
-        GIT_SHALLOW TRUE)
-    set(SDL_SHARED OFF CACHE BOOL "" FORCE)
-    set(SDL_STATIC ON  CACHE BOOL "" FORCE)
-    set(SDL_TEST   OFF CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(SDL3)
-    target_link_libraries(pes17 PRIVATE SDL3::SDL3-static)
-    target_compile_definitions(pes17 PRIVATE PES17_USE_SDL=1)
-endif()
-
-# ---- XMA decoder ----------------------------------------------------------
-add_subdirectory(third_party/ffmpeg-xenia)
-target_link_libraries(pes17 PRIVATE ffmpeg_xma)
-
-# ---- Vulkan ----------------------------------------------------------------
-# Loaded through the loader rather than linked to a driver, so a machine without
-# a device still builds and runs; the presenter falls back to headless.
-if(WIN32)
-    include(cmake/vulkan-windows.cmake)
-    add_dependencies(pes17 vulkan_import_library)
-elseif(ANDROID)
-    # The NDK's sysroot carries the headers and a libvulkan.so, but this build
-    # links neither: which Vulkan the process talks to is decided while it
-    # runs -- the system's, or a driver the player imported
-    # (runtime/gpu/vulkan/loader.cpp, runtime/android/driver.cpp). Setting
-    # this here keeps the Vulkan block below as it is.
-    set(Vulkan_FOUND TRUE)
-    set(Vulkan_LIBRARY "loaded at run time")
-else()
-    find_package(Vulkan)
-endif()
-if(Vulkan_FOUND)
-    if(NOT ANDROID)
-        target_link_libraries(pes17 PRIVATE Vulkan::Vulkan)
-    endif()
-    target_compile_definitions(pes17 PRIVATE PES17_HAVE_VULKAN=1)
-    message(STATUS "Vulkan found: ${Vulkan_LIBRARY}")
-else()
-    message(STATUS "Vulkan not found -- building without a window")
-endif()
-
-if(NOT WIN32 AND NOT ANDROID)
-    target_link_libraries(pes17 PRIVATE pthread)
-endif()
-
-# The two tools below are for working on the renderer, on Linux.
-if(NOT ANDROID)
-# ---- offline shader translation -------------------------------------------
-# The translator has to live in the runtime, because the title hands the GPU
-# microcode while it runs. Building it as a tool too gives a fast loop against
-# captured shaders and spirv-val, without launching the game.
-add_executable(translate-shader
-    "${CMAKE_SOURCE_DIR}/tools/translate_shader.cpp"
-    "${CMAKE_SOURCE_DIR}/runtime/gpu/vulkan/shader_translator.cpp"
-    "${CMAKE_SOURCE_DIR}/runtime/gpu/vulkan/pipeline.cpp"
-    # The device this tool brings up is the runtime's own, so it answers for the
-    # same Snapdragon workaround (bc_decoder.cpp, vk::bc::AdrenoMode).
-    "${CMAKE_SOURCE_DIR}/runtime/gpu/vulkan/bc_decoder.cpp"
-    "${CMAKE_SOURCE_DIR}/runtime/gpu/vulkan/spirv.cpp")
-target_include_directories(translate-shader PRIVATE "${CMAKE_SOURCE_DIR}/runtime")
-# --compile puts a translated module in front of the real driver, which is a
-# stronger check than spirv-val: it is the compiler that would run the shader.
-if(Vulkan_FOUND)
-    target_link_libraries(translate-shader PRIVATE Vulkan::Vulkan)
-    target_compile_definitions(translate-shader PRIVATE PES17_HAVE_VULKAN=1)
-endif()
-
-# ---- offline texture upload ------------------------------------------------
-# The upload hands the driver the guest's own block bytes, so reading the image
-# back returns exactly what went in. That is a test, and it needs neither the
-# game nor a picture -- unlike the untiler, which needs both.
-add_executable(upload-texture
-    "${CMAKE_SOURCE_DIR}/tools/upload_texture.cpp"
-    "${CMAKE_SOURCE_DIR}/runtime/gpu/texture.cpp"
-    "${CMAKE_SOURCE_DIR}/runtime/gpu/vulkan/texture_cache.cpp"
-    "${CMAKE_SOURCE_DIR}/runtime/gpu/vulkan/texture_store.cpp"
-    "${CMAKE_SOURCE_DIR}/runtime/gpu/vulkan/bc_decoder.cpp"
-    "${CMAKE_SOURCE_DIR}/runtime/gpu/vulkan/image_memory.cpp"
-    "${CMAKE_SOURCE_DIR}/runtime/gpu/vulkan/texture_formats.cpp"
-    "${CMAKE_SOURCE_DIR}/runtime/gpu/vulkan/pipeline.cpp"
-    "${CMAKE_SOURCE_DIR}/runtime/gpu/vulkan/shader_translator.cpp"
-    "${CMAKE_SOURCE_DIR}/runtime/gpu/vulkan/spirv.cpp")
-target_include_directories(upload-texture PRIVATE "${CMAKE_SOURCE_DIR}/runtime")
-if(Vulkan_FOUND)
-    target_link_libraries(upload-texture PRIVATE Vulkan::Vulkan)
-    target_compile_definitions(upload-texture PRIVATE PES17_HAVE_VULKAN=1)
-endif()
-
-# ---- the software decoder's speed ------------------------------------------
-# Not a check: a number. The decoder runs on every texture uploaded where the
-# driver cannot sample block compression, so the loops in it are worth timing
-# the way the comments there quote -- a 2048x2048 decode, per format, with the
-# output buffer reused as the runtime reuses its scratch.
-add_executable(bc-bench
-    "${CMAKE_SOURCE_DIR}/tools/bc_bench.cpp"
-    "${CMAKE_SOURCE_DIR}/runtime/gpu/vulkan/bc_decoder.cpp")
-target_include_directories(bc-bench PRIVATE "${CMAKE_SOURCE_DIR}/runtime")
-if(Vulkan_FOUND)
-    target_link_libraries(bc-bench PRIVATE Vulkan::Vulkan)
-    target_compile_definitions(bc-bench PRIVATE PES17_HAVE_VULKAN=1)
-endif()
-
-# ---- the checks `ctest` runs -----------------------------------------------
-# The three of them are defined in a project of their own (tests/CMakeLists.txt)
-# so they can be configured and run on a tree that cannot build the runtime: this
-# file refuses to configure without the recompiled guest code, which is made from
-# the disc's executables and is in no repository, so a CI runner has none of it
-# (.github/workflows/tests.yml). Including it here is what keeps a local `ctest`
-# running exactly what CI runs.
-add_subdirectory(tests)
-endif()
-
-# ---- launcher --------------------------------------------------------------
-# What a player opens (launcher/): it installs the game and starts it. One
-# executable with nothing beside it, like the game's: Dear ImGui on SDL's own
-# renderer, the fonts as arrays, and XenonRecomp's patcher, which applies the
-# title update, compiled in from its checkout.
-if(PES17_USE_SDL)
-    enable_language(C)
-    FetchContent_Declare(imgui
-        GIT_REPOSITORY https://github.com/ocornut/imgui.git
-        GIT_TAG v1.91.9b
-        GIT_SHALLOW TRUE)
-    FetchContent_MakeAvailable(imgui)
-
-    # third_party/fonts/*.ttf as C arrays.
-    set(PES17_FONTS_SOURCE "${CMAKE_BINARY_DIR}/launcher_fonts.cpp")
-    set(fonts_text "// Generated by CMake from third_party/fonts/.\n")
-    foreach(font "Menu=BarlowCondensed-Regular" "Heading=BarlowCondensed-Medium" "Body=BarlowSemiCondensed-Regular")
-        string(REPLACE "=" ";" font "${font}")
-        list(GET font 0 font_name)
-        list(GET font 1 font_file)
-        set(font_path "${CMAKE_SOURCE_DIR}/third_party/fonts/${font_file}.ttf")
-        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${font_path}")
-        file(READ "${font_path}" font_hex HEX)
-        string(LENGTH "${font_hex}" font_length)
-        math(EXPR font_size "${font_length} / 2")
-        string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," font_bytes "${font_hex}")
-        string(APPEND fonts_text "extern const unsigned char kFont${font_name}[] = { ${font_bytes} };\n"
-                                 "extern const unsigned kFont${font_name}Size = ${font_size};\n")
-    endforeach()
-    # The window's icon the same way (tools/make_artwork.py makes it).
-    set(icon_path "${CMAKE_SOURCE_DIR}/launcher/icon/launcher.bmp")
-    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${icon_path}")
-    file(READ "${icon_path}" icon_hex HEX)
-    string(LENGTH "${icon_hex}" icon_length)
-    math(EXPR icon_size "${icon_length} / 2")
-    string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," icon_bytes "${icon_hex}")
-    string(APPEND fonts_text "extern const unsigned char kIcon[] = { ${icon_bytes} };\n"
-                             "extern const unsigned kIconSize = ${icon_size};\n")
-    file(GENERATE OUTPUT "${PES17_FONTS_SOURCE}" CONTENT "${fonts_text}")
-
-    # The game draws its sign-in screen (runtime/signin.cpp) with the same
-    # fonts, rasterised by the stb_truetype that comes with Dear ImGui.
-    target_sources(pes17 PRIVATE "${PES17_FONTS_SOURCE}")
-    target_include_directories(pes17 PRIVATE "${imgui_SOURCE_DIR}")
-    target_compile_definitions(pes17 PRIVATE PES17_SIGNIN_PICTURE=1)
-
-    set(XENON "${CMAKE_SOURCE_DIR}/third_party/XenonRecomp")
-    file(GLOB LAUNCHER_SOURCES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/launcher/*.cpp")
-    add_executable(launcher ${LAUNCHER_SOURCES}
-        "${PES17_FONTS_SOURCE}"
-        "${CMAKE_SOURCE_DIR}/runtime/install/crypto.cpp"
-        "${CMAKE_SOURCE_DIR}/runtime/install/xex.cpp"
-        "${CMAKE_SOURCE_DIR}/runtime/install/spawn.cpp"
-        "${imgui_SOURCE_DIR}/imgui.cpp"
-        "${imgui_SOURCE_DIR}/imgui_draw.cpp"
-        "${imgui_SOURCE_DIR}/imgui_tables.cpp"
-        "${imgui_SOURCE_DIR}/imgui_widgets.cpp"
-        "${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp"
-        "${imgui_SOURCE_DIR}/backends/imgui_impl_sdlrenderer3.cpp"
-        "${XENON}/XenonUtils/xex_patcher.cpp"
-        "${XENON}/XenonUtils/memory_mapped_file.cpp"
-        "${XENON}/thirdparty/libmspack/libmspack/mspack/lzxd.c"
-        "${XENON}/thirdparty/tiny-AES-c/aes.c")
-    set_target_properties(launcher PROPERTIES OUTPUT_NAME pes17-launcher)
-    target_include_directories(launcher PRIVATE
-        "${imgui_SOURCE_DIR}" "${imgui_SOURCE_DIR}/backends"
-        "${XENON}/XenonUtils" "${XENON}/thirdparty/simde"
-        "${XENON}/thirdparty/libmspack/libmspack/mspack"
-        "${XENON}/thirdparty/tiny-AES-c" "${XENON}/thirdparty/TinySHA1")
-    target_compile_definitions(launcher PRIVATE ${PES17_HASH_DEFINITIONS} NOMINMAX)
-    # What release this is, for the launcher to look for a newer one: the
-    # release workflow gives the tag. A build without one does not update.
-    set(PES17_RELEASE_TAG "" CACHE STRING "The release tag this build is published as, e.g. v0.3.0")
-    if(WIN32)
-        set(PES17_RELEASE_KIND "windows-${PES17_ONLINE}")
-    else()
-        set(PES17_RELEASE_KIND "linux-${PES17_ONLINE}")
-    endif()
-    set_source_files_properties("${CMAKE_SOURCE_DIR}/launcher/update.cpp" PROPERTIES COMPILE_DEFINITIONS
-        "PES17_RELEASE_TAG=\"${PES17_RELEASE_TAG}\";PES17_RELEASE_KIND=\"${PES17_RELEASE_KIND}\"")
-    # The decoder the game has for its sound, for the menu sounds (launcher/sound.cpp).
-    target_link_libraries(launcher PRIVATE SDL3::SDL3-static ffmpeg_xma)
-    if(WIN32)
-        # The program's icon, as Explorer and the taskbar show it.
-        enable_language(RC)
-        target_sources(launcher PRIVATE "${CMAKE_SOURCE_DIR}/launcher/icon/launcher.rc")
-        target_include_directories(launcher PRIVATE "${CMAKE_SOURCE_DIR}/launcher/compat")
-        target_link_libraries(launcher PRIVATE urlmon)
-        target_link_options(launcher PRIVATE -static)
-        if(NOT PES17_DIAGNOSTICS)
-            target_link_options(launcher PRIVATE -mwindows)
-        endif()
-    else()
-        target_link_libraries(launcher PRIVATE pthread)
-        if(PES17_PORTABLE)
-            target_link_options(launcher PRIVATE -static-libstdc++ -static-libgcc)
-        endif()
-    endif()
+    add_executable(pes17 ${RUNTIME_SOURCES} "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp" ${PES17_ONLINE_SOURCES})
+    target_compile_definitions(pes17 PRIVATE ${PES17_ONLINE_DEFINITIONS})
+    target_link_libraries(pes17 PRIVATE ppc_recomp)
 endif()
