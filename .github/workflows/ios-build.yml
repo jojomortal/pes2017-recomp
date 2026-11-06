@@ -21,7 +21,7 @@ jobs:
 
       - name: Bypass, Configure, Compile and Package Launcher
         run: |
-          echo "1. Criando stubs e simulacoes estruturais..."
+          echo "1. Criando stubs e simulacoes estruturais basicas..."
           mkdir -p ppc pes
           rm -rf build_ios
           mkdir -p build_ios
@@ -50,46 +50,6 @@ jobs:
             echo "#define PPC_CONFIG_H" >> "$dir/ppc_config.h"
             echo "#endif" >> "$dir/ppc_config.h"
           done
-          
-          # Sobrescreve o service.cpp embutindo a criacao do TXT na pasta Documents e prendendo a execucao
-          cat << 'EOF' > runtime/online/service.cpp
-          #include <stdint.h>
-          #include <functional>
-          #include <fstream>
-          #include <filesystem>
-
-          extern "C" {
-              void CFRunLoopRun(void);
-          }
-          
-          void online_service_dummy() {}
-          
-          extern "C" {
-              // Stubs do Kernel e GPU unificados de visibilidade aberta
-              __attribute__((visibility("default"))) void _ZN5crash18StopHangingMonitorEv() {}
-              __attribute__((visibility("default"))) void _ZN6kernel12AcceptInviteEyyPKcb(uint64_t a, uint64_t b, const char* c, bool d) {}
-              __attribute__((visibility("default"))) void _ZN6kernel14MovePlayerDataEyyy(uint64_t a, uint64_t b, uint64_t c) {}
-              __attribute__((visibility("default"))) void _ZN6kernel23UpdateTimestampBundleEv() {}
-              __attribute__((visibility("default"))) void _ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE(unsigned int a, unsigned int b, unsigned int c, void* d) {}
-              
-              // Ponto de entrada nativo do aplicativo
-              __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
-                  // Forçar a criação imediata de um arquivo de texto para alertar o sistema de sandbox do iOS
-                  try {
-                      std::ofstream arquivo("log_inicializacao.txt");
-                      if (arquivo.is_open()) {
-                          arquivo << "PES 2017 Launcher Iniciado com Sucesso no iOS!\n";
-                          arquivo << "Insira os arquivos convertidos na pasta pes/ para rodar o jogo.\n";
-                          arquivo.close();
-                      }
-                  } catch (...) {}
-
-                  // Inicia o loop infinito nativo regulamentado da Apple para segurar o app aberto
-                  CFRunLoopRun();
-                  return 0;
-              }
-          }
-          EOF
           
           # Remove travas de arquivos de mídia ausentes nos CMakeLists
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(FATAL_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
