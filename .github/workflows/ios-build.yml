@@ -21,7 +21,7 @@ jobs:
 
       - name: Bypass, Configure, Compile and Package Launcher
         run: |
-          echo "1. Criando stubs e simulacoes estruturais..."
+          echo "1. Criando stubs e simulacoes estruturais basicas..."
           mkdir -p ppc pes
           rm -rf build_ios
           mkdir -p build_ios
@@ -51,17 +51,6 @@ jobs:
             echo "#endif" >> "$dir/ppc_config.h"
           done
           
-          # Injeta apenas os stubs binários necessários, sem duplicar a função main
-          echo "" >> runtime/kernel/kernel.cpp
-          echo '#include <functional>' >> runtime/kernel/kernel.cpp
-          echo 'extern "C" {' >> runtime/kernel/kernel.cpp
-          echo '    __attribute__((visibility("default"))) void _ZN5crash18StopHangingMonitorEv() {}' >> runtime/kernel/kernel.cpp
-          echo '    __attribute__((visibility("default"))) void _ZN6kernel12AcceptInviteEyyPKcb(uint64_t a, uint64_t b, const char* c, bool d) {}' >> runtime/kernel/kernel.cpp
-          echo '    __attribute__((visibility("default"))) void _ZN6kernel14MovePlayerDataEyyy(uint64_t a, uint64_t b, uint64_t c) {}' >> runtime/kernel/kernel.cpp
-          echo '    __attribute__((visibility("default"))) void _ZN6kernel23UpdateTimestampBundleEv() {}' >> runtime/kernel/kernel.cpp
-          echo '    __attribute__((visibility("default"))) void _ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE(unsigned int a, unsigned int b, unsigned int c, void* d) {}' >> runtime/kernel/kernel.cpp
-          echo '}' >> runtime/kernel/kernel.cpp
-          
           # Remove travas de arquivos de mídia ausentes nos CMakeLists
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(FATAL_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(SEND_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
@@ -89,14 +78,14 @@ jobs:
             -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
             -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
 
-          echo "3. Compilando o executavel..."
+          echo "3. Compilando o executavel móvel..."
           make pes17
 
-          echo "4. Montando a estrutura Payload do IPA de forma garantida..."
+          echo "4. Montando a estrutura Payload do IPA..."
           cd ..
           mkdir -p Payload
           
-          # Copia a pasta .app (Bundle completo) gerada nativamente pelo CMake para o Payload do iOS
+          # Copia a pasta .app (Bundle completo) gerada pelo CMake de forma limpa para o Payload
           find build_ios -name "*.app" -type d -exec cp -r {} Payload/ \;
           
           # Injeta os metadados cruciais de compartilhamento de arquivos no Info.plist embutido
