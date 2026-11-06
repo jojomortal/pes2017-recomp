@@ -102,8 +102,8 @@ jobs:
             -DPES17_USE_METAL=ON \
             -DENABLE_AUDIO_DISABLED=ON \
             -DENABLE_AUDIO_SDL=OFF \
-            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -I/opt/homebrew/include" \
-            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -I/opt/homebrew/include"
+            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -I/opt/homebrew/include -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -I/opt/homebrew/include -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
 
       - name: Compile and Archive App
         run: |
