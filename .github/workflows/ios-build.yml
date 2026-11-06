@@ -62,7 +62,7 @@ jobs:
             echo "#endif" >> "$dir/ppc_config.h"
           done
           
-          # Cria o arquivo de stubs de kernel completo contendo as novas assinaturas remanescentes
+          # Cria o arquivo de stubs de kernel completo e inclui as dependencias finais de crash e engine
           echo '#include <stdint.h>' > runtime/kernel_stubs.cpp
           echo '#include <functional>' >> runtime/kernel_stubs.cpp
           echo 'namespace kernel {' >> runtime/kernel_stubs.cpp
@@ -89,6 +89,18 @@ jobs:
           echo '    uint32_t FromPhysical(unsigned int a) { return 0; }' >> runtime/kernel_stubs.cpp
           echo '    void CreateThreadBlock(unsigned int a) {}' >> runtime/kernel_stubs.cpp
           echo '    void CompleteOverlapped(unsigned int a, unsigned int b) {}' >> runtime/kernel_stubs.cpp
+          echo '    uint32_t ToPhysical(unsigned int a) { return 0; }' >> runtime/kernel_stubs.cpp
+          echo '    void ReportWaits() {}' >> runtime/kernel_stubs.cpp
+          echo '}' >> runtime/kernel_stubs.cpp
+          
+          echo 'namespace crash {' >> runtime/kernel_stubs.cpp
+          echo '    void RegisterThread(const char* a) {}' >> runtime/kernel_stubs.cpp
+          echo '    void StopHangingMonitor() {}' >> runtime/kernel_stubs.cpp
+          echo '    const char* CurrentThreadName() { return "Main"; }' >> runtime/kernel_stubs.cpp
+          echo '}' >> runtime/kernel_stubs.cpp
+          
+          echo 'namespace engine {' >> runtime/kernel_stubs.cpp
+          echo '    void ReportPredicateWaits() {}' >> runtime/kernel_stubs.cpp
           echo '}' >> runtime/kernel_stubs.cpp
           
           # Simbolos globais exigidos pelo linker para os escopos internos de amostragem
