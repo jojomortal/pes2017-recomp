@@ -114,8 +114,8 @@ jobs:
           find . -name "audio.cpp" -exec sh -c 'echo "/* Desativado para o build iOS */" > "{}"' \;
           find . -name "crash.cpp" -exec sh -c 'echo "/* Desativado para evitar travas de baixo nivel no iOS */" > "{}"' \;
           
-          echo "Suprimindo chamadas externas de codec do arquivo xma.cpp para permitir linkagem nativa..."
-          find . -type f -name "xma.cpp" -exec sh -c 'echo "/* Stub de Audio para Launcher Limpo */" > "{}"' \;
+          # Cria o xma.cpp com uma função vazia válida para o compilador não reclamar de arquivo completamente em branco
+          echo 'void xma_dummy_anchor() {}' > runtime/apu/xma.cpp
 
           echo "Injetando definicoes de compatibilidade funcional diretamente no topo do command_processor..."
           find . -type f -name "command_processor.cpp" -exec sed -i '' '1i\
@@ -141,6 +141,7 @@ jobs:
             -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
             -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
 
-      - name: Compile and Archive App
+      - name: Compile, Archive and Package IPA
         run: |
           cd build_ios
+          echo "Compilando o motor do jogo puramente otimizado para iOS e Metal API..."
