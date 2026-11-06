@@ -51,12 +51,13 @@ jobs:
             echo "#endif" >> "$dir/ppc_config.h"
           done
           
-          # Sobrescreve o service.cpp embutindo o Loop de Vida Nativo da Apple CFRunLoop para prender a execucao
+          # Sobrescreve o service.cpp embutindo a criacao do TXT na pasta Documents e prendendo a execucao
           cat << 'EOF' > runtime/online/service.cpp
           #include <stdint.h>
           #include <functional>
-          
-          // Importa a biblioteca nativa de ciclo de vida do ecossistema Apple
+          #include <fstream>
+          #include <filesystem>
+
           extern "C" {
               void CFRunLoopRun(void);
           }
@@ -71,9 +72,19 @@ jobs:
               __attribute__((visibility("default"))) void _ZN6kernel23UpdateTimestampBundleEv() {}
               __attribute__((visibility("default"))) void _ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE(unsigned int a, unsigned int b, unsigned int c, void* d) {}
               
-              // Ponto de entrada que prende o Launcher aberto no iPhone para forcá-lo a criar a pasta publica
+              // Ponto de entrada nativo do aplicativo
               __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
-                  // Inicia o loop infinito nativo regulamentado da Apple; o app fica ativo ate o usuario fechar manualmente
+                  // Forçar a criação imediata de um arquivo de texto para alertar o sistema de sandbox do iOS
+                  try {
+                      std::ofstream arquivo("log_inicializacao.txt");
+                      if (arquivo.is_open()) {
+                          arquivo << "PES 2017 Launcher Iniciado com Sucesso no iOS!\n";
+                          arquivo << "Insira os arquivos convertidos na pasta pes/ para rodar o jogo.\n";
+                          arquivo.close();
+                      }
+                  } catch (...) {}
+
+                  // Inicia o loop infinito nativo regulamentado da Apple para segurar o app aberto
                   CFRunLoopRun();
                   return 0;
               }
