@@ -182,6 +182,11 @@ else()
         "-framework CoreVideo"
     )
     
+    # PERMISSÃO DINÂMICA DA APPLE: Ignorar os ponteiros órfãos (__imp_) das bibliotecas de rede do Xbox
+    if(APPLE)
+        target_link_options(pes17 PRIVATE "-Wl,-undefined,dynamic_lookup")
+    endif()
+    
     # Incluir o caminho do runtime para que as subpastas localizem o arquivo title.h
     target_include_directories(pes17 PRIVATE "${CMAKE_SOURCE_DIR}/runtime")
 endif()
