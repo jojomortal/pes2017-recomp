@@ -51,7 +51,7 @@ jobs:
             echo "#endif" >> "$dir/ppc_config.h"
           done
           
-          # Injeta os stubs binários diretamente no final do arquivo físico kernel.cpp mapeado no projeto
+          # Injeta apenas os stubs binários necessários, sem duplicar a função main
           echo "" >> runtime/kernel/kernel.cpp
           echo '#include <functional>' >> runtime/kernel/kernel.cpp
           echo 'extern "C" {' >> runtime/kernel/kernel.cpp
@@ -60,7 +60,6 @@ jobs:
           echo '    __attribute__((visibility("default"))) void _ZN6kernel14MovePlayerDataEyyy(uint64_t a, uint64_t b, uint64_t c) {}' >> runtime/kernel/kernel.cpp
           echo '    __attribute__((visibility("default"))) void _ZN6kernel23UpdateTimestampBundleEv() {}' >> runtime/kernel/kernel.cpp
           echo '    __attribute__((visibility("default"))) void _ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE(unsigned int a, unsigned int b, unsigned int c, void* d) {}' >> runtime/kernel/kernel.cpp
-          echo '    __attribute__((visibility("default"))) int main(int argc, char* argv[]) { return 0; }' >> runtime/kernel/kernel.cpp
           echo '}' >> runtime/kernel/kernel.cpp
           
           # Remove travas de arquivos de mídia ausentes nos CMakeLists
