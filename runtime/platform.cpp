@@ -197,8 +197,13 @@ void platform::LowerThreadPriority()
 
 void platform::IdleThreadPriority()
 {
+#if defined(__APPLE__)
+    // O iOS não possui SCHED_IDLE, então usamos o fallback de prioridade baixa do projeto
+    LowerThreadPriority();
+#else
     sched_param none{};
     if (pthread_setschedparam(pthread_self(), SCHED_IDLE, &none) != 0) LowerThreadPriority();
+#endif
 }
 
 namespace
