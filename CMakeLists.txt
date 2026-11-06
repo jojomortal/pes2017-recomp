@@ -172,4 +172,6 @@ else()
     add_executable(pes17 ${RUNTIME_SOURCES} "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp" ${PES17_ONLINE_SOURCES})
     target_compile_definitions(pes17 PRIVATE ${PES17_ONLINE_DEFINITIONS})
     target_link_libraries(pes17 PRIVATE ppc_recomp)
+    # Incluir o caminho do runtime para que as subpastas (como runtime/gpu) localizem o arquivo title.h
+    target_include_directories(pes17 PRIVATE "${CMAKE_SOURCE_DIR}/runtime")
 endif()
