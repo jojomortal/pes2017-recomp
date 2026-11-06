@@ -23,21 +23,21 @@ namespace kernel {
     __attribute__((visibility("default"))) uint32_t ToPhysical(unsigned int a) { return 0; }
     __attribute__((visibility("default"))) uint32_t FromPhysical(unsigned int a) { return 0; }
 
-    // 2. Mocks adicionais protegidos por linkage fraco contra duplicidades sintáticas
-    __attribute__((weak, visibility("default"))) uint32_t AllocateGuest(unsigned int a, unsigned int b) { return 0; }
-    __attribute__((weak, visibility("default"))) void PostNotification(unsigned int a, unsigned int b) {}
-    __attribute__((weak, visibility("default"))) const std::filesystem::path& GameRoot() { static std::filesystem::path p; return p; }
-    __attribute__((weak, visibility("default"))) PPCFunc* GuestFunction(uint32_t address) { return nullptr; }
-    __attribute__((weak, visibility("default"))) bool CheckProcessHeap(bool quiet) { return true; }
-    __attribute__((weak, visibility("default"))) uint32_t CreateThreadBlock(uint32_t threadid) { return 0; }
-    __attribute__((weak, visibility("default"))) bool FreeGuest(uint32_t address) { return true; }
-    __attribute__((weak, visibility("default"))) void TraceImport(char const* a, unsigned int b, const PPCContext& c) {}
-    __attribute__((weak, visibility("default"))) void UpdateTimestampBundle() {}
+    // 2. Mocks consolidados como definicoes fortes para o Linker arm64 vincular de forma garantida
+    __attribute__((visibility("default"))) uint32_t AllocateGuest(unsigned int a, unsigned int b) { return 0; }
+    __attribute__((visibility("default"))) void PostNotification(unsigned int a, unsigned int b) {}
+    __attribute__((visibility("default"))) const std::filesystem::path& GameRoot() { static std::filesystem::path p; return p; }
+    __attribute__((visibility("default"))) PPCFunc* GuestFunction(uint32_t address) { return nullptr; }
+    __attribute__((visibility("default"))) bool CheckProcessHeap(bool quiet) { return true; }
+    __attribute__((visibility("default"))) uint32_t CreateThreadBlock(uint32_t threadid) { return 0; }
+    __attribute__((visibility("default"))) bool FreeGuest(uint32_t address) { return true; }
+    __attribute__((visibility("default"))) void TraceImport(char const* a, unsigned int b, const PPCContext& c) {}
+    __attribute__((visibility("default"))) void UpdateTimestampBundle() {}
 
-    // Correções matemáticas exatas das assinaturas para gerar os Mangled Names perfeitos para arm64
-    __attribute__((weak, visibility("default"))) void AcceptInvite(uint64_t a, uint64_t b, const unsigned char* c, bool d) {}
-    __attribute__((weak, visibility("default"))) void MovePlayerData(uint64_t a, uint64_t b, uint64_t c) {}
-    __attribute__((weak, visibility("default"))) void QueueUserApc(unsigned int a, unsigned int b, unsigned int c, const std::function<void()>& d) {}
+    // Assinaturas exatas mapeadas com linkage forte para os Mangled Names do ecossistema Apple
+    __attribute__((visibility("default"))) void AcceptInvite(uint64_t a, uint64_t b, const unsigned char* c, bool d) {}
+    __attribute__((visibility("default"))) void MovePlayerData(uint64_t a, uint64_t b, uint64_t c) {}
+    __attribute__((visibility("default"))) void QueueUserApc(unsigned int a, unsigned int b, unsigned int c, const std::function<void()>& d) {}
 }
 
 namespace crash {
@@ -50,7 +50,7 @@ namespace engine {
     __attribute__((visibility("default"))) void ReportPredicateWaits() {}
 }
 
-// 3. Forçar as vinculações puras remanescentes de escopo C exigidas pela GPU
+// 3. Vinculações puras remanescentes de escopo C exigidas pela GPU
 extern "C" {
     __attribute__((visibility("default"))) void SampleCountEvent(unsigned int a) {}
     __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
