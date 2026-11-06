@@ -172,14 +172,17 @@ else()
     add_executable(pes17 ${RUNTIME_SOURCES} "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp" ${PES17_ONLINE_SOURCES})
     target_compile_definitions(pes17 PRIVATE ${PES17_ONLINE_DEFINITIONS})
     
-    # Vincula os binários de decodificação de áudio (FFmpeg) instalados pelo Homebrew na linkagem do iOS
-    link_directories("/opt/homebrew/lib")
+    # Detecção nativa automática e caminhos exatos do FFmpeg via PkgConfig no ecossistema Apple
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(AVCODEC REQUIRED libavcodec)
+    pkg_check_modules(AVUTIL REQUIRED libavutil)
+    pkg_check_modules(SWRESAMPLE REQUIRED libswresample)
     
     target_link_libraries(pes17 PRIVATE 
         ppc_recomp 
-        avcodec 
-        avutil 
-        swresample
+        ${AVCODEC_LIBRARIES}
+        ${AVUTIL_LIBRARIES}
+        ${SWRESAMPLE_LIBRARIES}
         "-framework AudioToolbox" 
         "-framework VideoToolbox" 
         "-framework CoreMedia"
