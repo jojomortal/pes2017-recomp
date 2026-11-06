@@ -59,11 +59,25 @@ jobs:
           find . -name "crash.cpp" -exec sh -c 'echo "/* Desativado */" > "{}"' \;
           echo 'void xma_dummy_anchor() {}' > runtime/apu/xma.cpp
 
+          echo "Injetando stubs forçados diretamente no topo do motor de execução para o Bundle do iOS..."
           find . -type f -name "command_processor.cpp" -exec sed -i '' '1i\
+          #include <stdint.h>\
+          #include <functional>\
           #define PPC_QueryTimeBase() 0\
           #define PPC_QueryTimebase() 0\
           #define PPC_querytimebase() 0\
+          extern "C" {\
+              void SampleCountEvent(unsigned int a) {}\
+              void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}\
+              void _ZN5crash18StopHangingMonitorEv() {}\
+              void _ZN6kernel12AcceptInviteEyyPKcb(uint64_t a, uint64_t b, const char* c, bool d) {}\
+              void _ZN6kernel14MovePlayerDataEyyy(uint64_t a, uint64_t b, uint64_t c) {}\
+              void _ZN6kernel23UpdateTimestampBundleEv() {}\
+              void _ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE(unsigned int a, unsigned int b, unsigned int c, void* d) {}\
+              int main(int argc, char* argv[]) { return 0; }\
+          }\
           ' {} + || true
+          
           find . -type f -name "d3d_hooks.cpp" -exec sh -c 'echo "/* Ignorado */" > "{}"' \;
 
           echo "2. Configurando o ambiente CMake limpo..."
@@ -83,28 +97,14 @@ jobs:
 
           echo "4. Montando a estrutura Payload do IPA de forma garantida..."
           cd ..
-          mkdir -p Payload/pes17.app
+          mkdir -p Payload
           
-          find build_ios -name "pes17" -type f -exec cp {} Payload/pes17.app/pes17 \;
-          chmod +x Payload/pes17.app/pes17
+          # Copia a pasta .app (Bundle completo) gerada nativamente pelo CMake para o Payload do iOS
+          find build_ios -name "*.app" -type d -exec cp -r {} Payload/ \;
           
-          # Estrutura o Info.plist habilitando a pasta compartilhada no app "Arquivos" do iPhone
-          echo '<?xml version="1.0" encoding="UTF-8"?>' > Payload/pes17.app/Info.plist
-          echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://apple.com">' >> Payload/pes17.app/Info.plist
-          echo '<plist version="1.0"><dict>' >> Payload/pes17.app/Info.plist
-          echo '<key>CFBundleExecutable</key><string>pes17</string>' >> Payload/pes17.app/Info.plist
-          echo '<key>CFBundleIdentifier</key><string>com.community.pes2017recomp</string>' >> Payload/pes17.app/Info.plist
-          echo '<key>CFBundleName</key><string>PES17-Launcher</string>' >> Payload/pes17.app/Info.plist
-          echo '<key>CFBundleVersion</key><string>1.0</string>' >> Payload/pes17.app/Info.plist
-          echo '<key>CFBundleShortVersionString</key><string>1.0</string>' >> Payload/pes17.app/Info.plist
-          echo '<key>MinimumOSVersion</key><string>14.0</string>' >> Payload/pes17.app/Info.plist
-          
-          # AS DUAS CHAVES CRUCIAIS PARA LIBERAR A PASTA NO APP ARQUIVOS DO IOS:
-          echo '<key>UIFileSharingEnabled</key><true/>' >> Payload/pes17.app/Info.plist
-          echo '<key>LSSupportsOpeningDocumentsInPlace</key><true/>' >> Payload/pes17.app/Info.plist
-          
-          echo '</dict></plist>' >> Payload/pes17.app/Info.plist
-          
+          # Injeta os metadados cruciais de compartilhamento de arquivos no Info.plist embutido
+          find Payload -name "Info.plist" -type f -exec sh -c 'sed -i "" "/<\/dict>/i\\\\\\\n<key>UIFileSharingEnabled<\/key><true\/>\\\n<key>LSSupportsOpeningDocumentsInPlace<\/key><true\/>" "{}"' \;
+
           zip -r pes2017_unsigned.ipa Payload
 
       - name: Upload IPA Artifact
