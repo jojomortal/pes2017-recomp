@@ -59,7 +59,7 @@ jobs:
           find . -name "crash.cpp" -exec sh -c 'echo "/* Desativado */" > "{}"' \;
           echo 'void xma_dummy_anchor() {}' > runtime/apu/xma.cpp
 
-          echo "Injetando stubs unificados no topo do motor de execucao para o Bundle do iOS..."
+          echo "Injetando stubs de Kernel limpos sem redefinicao grafica no topo do motor..."
           find . -type f -name "command_processor.cpp" -exec sed -i '' '1i\
           #include <stdint.h>\
           #include <functional>\
@@ -72,7 +72,6 @@ jobs:
               void _ZN6kernel14MovePlayerDataEyyy(uint64_t a, uint64_t b, uint64_t c) {}\
               void _ZN6kernel23UpdateTimestampBundleEv() {}\
               void _ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE(unsigned int a, unsigned int b, unsigned int c, void* d) {}\
-              void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}\
           }\
           int main(int argc, char* argv[]) { return 0; }\
           ' {} + || true
