@@ -6,11 +6,23 @@
 // Estruturas nativas do ecossistema do PES 2017
 struct PPCContext;
 
+// 1. O PONTO DE ENTRADA DO APLICATIVO IPHONE (Resolve o erro do _main)
+extern "C" __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
+    // Inicializador vazio do launcher limpo: o iOS precisa disso para selar o IPA
+    return 0;
+}
+
+// 2. Vinculação pura e direta para funções globais do sistema de frames e crash
+extern "C" {
+    __attribute__((visibility("default"))) void SampleCountEvent(unsigned int a) {}
+    __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
+}
+
+// 3. Mocks de Kernel com visibilidade pública forçada no padrão C++ (Mangled) para o Linker do iOS
 namespace kernel {
     void Initialise() {}
     void Shutdown() {}
 
-    // 1. Funções globais básicas com visibilidade default
     __attribute__((visibility("default"))) uint64_t SystemTime100ns() { return 0; }
     __attribute__((visibility("default"))) void ReportUnimplemented() {}
     __attribute__((visibility("default"))) void ReportAllocRate() {}
@@ -20,18 +32,24 @@ namespace kernel {
     __attribute__((visibility("default"))) void CompleteOverlapped(unsigned int a, unsigned int b) {}
     __attribute__((visibility("default"))) void WindowTrace(char const* a, char const* b, unsigned int c, unsigned int d, char const* e) {}
     __attribute__((visibility("default"))) void TraceImport(char const* a, unsigned int b, const void* p) {}
+    __attribute__((visibility("default"))) void AcceptInvite(unsigned long long a, unsigned long long b, char const* c, bool d) {}
     __attribute__((visibility("default"))) uint32_t ToPhysical(unsigned int a) { return 0; }
     __attribute__((visibility("default"))) uint32_t FromPhysical(unsigned int a) { return 0; }
 
-    // 2. Mocks estruturais nativos do ecossistema
-    __attribute__((visibility("default"))) uint32_t AllocateGuest(unsigned int a, unsigned int b) { return 0; }
-    __attribute__((visibility("default"))) void PostNotification(unsigned int a, unsigned int b) {}
-    __attribute__((visibility("default"))) const std::filesystem::path& GameRoot() { static std::filesystem::path p; return p; }
-    __attribute__((visibility("default"))) PPCFunc* GuestFunction(uint32_t address) { return nullptr; }
-    __attribute__((visibility("default"))) bool CheckProcessHeap(bool quiet) { return true; }
-    __attribute__((visibility("default"))) uint32_t CreateThreadBlock(uint32_t threadid) { return 0; }
-    __attribute__((visibility("default"))) bool FreeGuest(uint32_t address) { return true; }
-    __attribute__((visibility("default"))) void TraceImport(char const* a, unsigned int b, const PPCContext& c) {}
+    // Métodos dinâmicos com linkage fraco para evitar qualquer conflito com o gerador automático
+    __attribute__((weak, visibility("default"))) uint32_t AllocateGuest(unsigned int a, unsigned int b) { return 0; }
+    __attribute__((weak, visibility("default"))) void MovePlayerData(unsigned long long a, unsigned long long b, unsigned long long c) {}
+    __attribute__((weak, visibility("default"))) void PostNotification(unsigned int a, unsigned int b) {}
+    __attribute__((weak, visibility("default"))) void UpdateTimestampBundle() {}
+    __attribute__((weak, visibility("default"))) const std::filesystem::path& GameRoot() { static std::filesystem::path p; return p; }
+
+    __attribute__((weak, visibility("default"))) PPCFunc* GuestFunction(uint32_t address) { return nullptr; }
+    __attribute__((weak, visibility("default"))) bool CheckProcessHeap(bool quiet) { return true; }
+    __attribute__((weak, visibility("default"))) uint32_t CreateThreadBlock(uint32_t threadid) { return 0; }
+    __attribute__((weak, visibility("default"))) bool FreeGuest(uint32_t address) { return true; }
+    
+    __attribute__((weak, visibility("default"))) void TraceImport(char const* a, unsigned int b, const PPCContext& c) {}
+    __attribute__((weak, visibility("default"))) void QueueUserApc(unsigned int a, unsigned int b, unsigned int c, const std::function<void()>& d) {}
 }
 
 namespace crash {
@@ -42,26 +60,4 @@ namespace crash {
 
 namespace engine {
     __attribute__((visibility("default"))) void ReportPredicateWaits() {}
-}
-
-// 3. O SEGREDO DO SUCESSO: Forçar o apelido do símbolo binário exato exigido pelo Linker (asm)
-extern "C" {
-    __attribute__((visibility("default"))) void SampleCountEvent(unsigned int a) {}
-    __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
-    
-    // Vinculação cirúrgica com o exato nome que o Linker do Xcode reclamou na tela
-    __attribute__((visibility("default"))) void pes_stub_stop_hang() __asm__("_ZN5crash18StopHangingMonitorEv");
-    void pes_stub_stop_hang() {}
-
-    __attribute__((visibility("default"))) void pes_stub_accept() __asm__("_ZN6kernel12AcceptInviteEyyPKcb");
-    void pes_stub_accept() {}
-
-    __attribute__((visibility("default"))) void pes_stub_move() __asm__("_ZN6kernel14MovePlayerDataEyyy");
-    void pes_stub_move() {}
-
-    __attribute__((visibility("default"))) void pes_stub_timestamp() __asm__("_ZN6kernel23UpdateTimestampBundleEv");
-    void pes_stub_timestamp() {}
-
-    __attribute__((visibility("default"))) void pes_stub_apc() __asm__("_ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE");
-    void pes_stub_apc() {}
 }
