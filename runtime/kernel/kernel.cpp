@@ -2,27 +2,18 @@
 #include <stdint.h>
 #include <functional>
 #include <filesystem>
+#include <fstream>
 
-// Estruturas nativas do ecossistema do PES 2017
-struct PPCContext;
-
-// 1. O PONTO DE ENTRADA DO APLICATIVO IPHONE (Resolve o erro do _main)
-extern "C" __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
-    // Inicializador vazio do launcher limpo: o iOS precisa disso para selar o IPA
-    return 0;
-}
-
-// 2. Vinculação pura e direta para funções globais do sistema de frames e crash
+// Importa a biblioteca nativa de ciclo de vida do ecossistema Apple
 extern "C" {
-    __attribute__((visibility("default"))) void SampleCountEvent(unsigned int a) {}
-    __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
+    void CFRunLoopRun(void);
 }
 
-// 3. Mocks de Kernel com visibilidade pública forçada no padrão C++ (Mangled) para o Linker do iOS
 namespace kernel {
     void Initialise() {}
     void Shutdown() {}
 
+    // 1. Funções de Kernel com visibilidade aberta exigidas pelo motor gráfico e de mídia
     __attribute__((visibility("default"))) uint64_t SystemTime100ns() { return 0; }
     __attribute__((visibility("default"))) void ReportUnimplemented() {}
     __attribute__((visibility("default"))) void ReportAllocRate() {}
@@ -32,24 +23,24 @@ namespace kernel {
     __attribute__((visibility("default"))) void CompleteOverlapped(unsigned int a, unsigned int b) {}
     __attribute__((visibility("default"))) void WindowTrace(char const* a, char const* b, unsigned int c, unsigned int d, char const* e) {}
     __attribute__((visibility("default"))) void TraceImport(char const* a, unsigned int b, const void* p) {}
-    __attribute__((visibility("default"))) void AcceptInvite(unsigned long long a, unsigned long long b, char const* c, bool d) {}
     __attribute__((visibility("default"))) uint32_t ToPhysical(unsigned int a) { return 0; }
     __attribute__((visibility("default"))) uint32_t FromPhysical(unsigned int a) { return 0; }
 
-    // Métodos dinâmicos com linkage fraco para evitar qualquer conflito com o gerador automático
-    __attribute__((weak, visibility("default"))) uint32_t AllocateGuest(unsigned int a, unsigned int b) { return 0; }
-    __attribute__((weak, visibility("default"))) void MovePlayerData(unsigned long long a, unsigned long long b, unsigned long long c) {}
-    __attribute__((weak, visibility("default"))) void PostNotification(unsigned int a, unsigned int b) {}
-    __attribute__((weak, visibility("default"))) void UpdateTimestampBundle() {}
-    __attribute__((weak, visibility("default"))) const std::filesystem::path& GameRoot() { static std::filesystem::path p; return p; }
+    // 2. Mocks consolidados como definicoes fortes para o Linker arm64 vincular de forma garantida
+    __attribute__((visibility("default"))) uint32_t AllocateGuest(unsigned int a, unsigned int b) { return 0; }
+    __attribute__((visibility("default"))) void PostNotification(unsigned int a, unsigned int b) {}
+    __attribute__((visibility("default"))) const std::filesystem::path& GameRoot() { static std::filesystem::path p; return p; }
+    __attribute__((visibility("default"))) PPCFunc* GuestFunction(uint32_t address) { return nullptr; }
+    __attribute__((visibility("default"))) bool CheckProcessHeap(bool quiet) { return true; }
+    __attribute__((visibility("default"))) uint32_t CreateThreadBlock(uint32_t threadid) { return 0; }
+    __attribute__((visibility("default"))) bool FreeGuest(uint32_t address) { return true; }
+    __attribute__((visibility("default"))) void TraceImport(char const* a, unsigned int b, const PPCContext& c) {}
+    __attribute__((visibility("default"))) void UpdateTimestampBundle() {}
 
-    __attribute__((weak, visibility("default"))) PPCFunc* GuestFunction(uint32_t address) { return nullptr; }
-    __attribute__((weak, visibility("default"))) bool CheckProcessHeap(bool quiet) { return true; }
-    __attribute__((weak, visibility("default"))) uint32_t CreateThreadBlock(uint32_t threadid) { return 0; }
-    __attribute__((weak, visibility("default"))) bool FreeGuest(uint32_t address) { return true; }
-    
-    __attribute__((weak, visibility("default"))) void TraceImport(char const* a, unsigned int b, const PPCContext& c) {}
-    __attribute__((weak, visibility("default"))) void QueueUserApc(unsigned int a, unsigned int b, unsigned int c, const std::function<void()>& d) {}
+    // Assinaturas exatas mapeadas com linkage forte para os Mangled Names do ecossistema Apple
+    __attribute__((visibility("default"))) void AcceptInvite(uint64_t a, uint64_t b, const unsigned char* c, bool d) {}
+    __attribute__((visibility("default"))) void MovePlayerData(uint64_t a, uint64_t b, uint64_t c) {}
+    __attribute__((visibility("default"))) void QueueUserApc(unsigned int a, unsigned int b, unsigned int c, const std::function<void()>& d) {}
 }
 
 namespace crash {
@@ -60,4 +51,26 @@ namespace crash {
 
 namespace engine {
     __attribute__((visibility("default"))) void ReportPredicateWaits() {}
+}
+
+// 3. Vinculações puras remanescentes de escopo C exigidas pela GPU e ponto de entrada da Apple
+extern "C" {
+    __attribute__((visibility("default"))) void SampleCountEvent(unsigned int a) {}
+    __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
+
+    // O main oficial que força a escrita do arquivo .txt na primeira inicializacao do iPhone
+    __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
+        try {
+            std::ofstream arquivo("log_inicializacao.txt");
+            if (arquivo.is_open()) {
+                arquivo << "PES 2017 Launcher Iniciado com Sucesso no iOS!\n";
+                arquivo << "Insira os arquivos convertidos na pasta pes/ para rodar o jogo.\n";
+                arquivo.close();
+            }
+        } catch (...) {}
+
+        // Prende o aplicativo aberto para que o iOS registre o compartilhamento USB do iTunes
+        CFRunLoopRun();
+        return 0;
+    }
 }
