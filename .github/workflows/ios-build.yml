@@ -62,21 +62,36 @@ jobs:
             echo "#endif" >> "$dir/ppc_config.h"
           done
           
-          # Cria o arquivo de stubs globais expandido contendo absolutamente todas as definicoes exigidas pelo Linker
+          # Cria o arquivo de stubs globais de kernel incorporando as assinaturas complexas e tipos exatos (int vs uint)
           echo '#include <stdint.h>' > runtime/kernel_stubs.cpp
+          echo '#include <functional>' >> runtime/kernel_stubs.cpp
           echo 'namespace kernel {' >> runtime/kernel_stubs.cpp
           echo '    uint64_t SystemTime100ns() { return 0; }' >> runtime/kernel_stubs.cpp
           echo '    void* CheckProcessHeap(void* p) { return p; }' >> runtime/kernel_stubs.cpp
+          echo '    void* CheckProcessHeap(bool p) { return nullptr; }' >> runtime/kernel_stubs.cpp
           echo '    void PostNotification(uint32_t a, uint32_t b) {}' >> runtime/kernel_stubs.cpp
+          echo '    void PostNotification(unsigned int a, int b) {}' >> runtime/kernel_stubs.cpp
           echo '    void ReportUnimplemented() {}' >> runtime/kernel_stubs.cpp
           echo '    void UpdateTimestampBundle() {}' >> runtime/kernel_stubs.cpp
           echo '    uint32_t GameRoot() { return 0; }' >> runtime/kernel_stubs.cpp
           echo '    void FreeGuest(uint32_t a) {}' >> runtime/kernel_stubs.cpp
+          echo '    void FreeGuest(unsigned int a) {}' >> runtime/kernel_stubs.cpp
           echo '    void GuestFunction(uint32_t a) {}' >> runtime/kernel_stubs.cpp
+          echo '    void GuestFunction(unsigned int a) {}' >> runtime/kernel_stubs.cpp
           echo '    void WindowTraceOn() {}' >> runtime/kernel_stubs.cpp
           echo '    void MovePlayerData(uint64_t a, uint64_t b, uint64_t c) {}' >> runtime/kernel_stubs.cpp
+          echo '    void MovePlayerData(unsigned long long a, unsigned long long b, unsigned long long c) {}' >> runtime/kernel_stubs.cpp
           echo '    void ReportAllocRate() {}' >> runtime/kernel_stubs.cpp
+          echo '    void ReportMemory() {}' >> runtime/kernel_stubs.cpp
+          echo '    uint32_t AllocateGuest(uint32_t a, uint32_t b) { return 0; }' >> runtime/kernel_stubs.cpp
+          echo '    unsigned int AllocateGuest(unsigned int a, unsigned int b) { return 0; }' >> runtime/kernel_stubs.cpp
+          echo '    void QueueUserApc(uint32_t a, uint32_t b, uint32_t c, const std::function<void()>& d) {}' >> runtime/kernel_stubs.cpp
+          echo '    void QueueUserApc(unsigned int a, int b, unsigned int c, const std::function<void()>& d) {}' >> runtime/kernel_stubs.cpp
           echo '}' >> runtime/kernel_stubs.cpp
+          
+          # Injeta a simulação do SampleCountEvent de forma global para unificar os escopos anonimos detectados
+          echo 'extern "C" void SampleCountEvent(unsigned int a) {}' >> runtime/kernel_stubs.cpp
+          echo 'extern "C" void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}' >> runtime/kernel_stubs.cpp
           
           # Suprime os erros de arquivos de mídia ausentes nos arquivos de configuração do CMake
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(FATAL_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
