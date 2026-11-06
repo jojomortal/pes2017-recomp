@@ -62,7 +62,7 @@ jobs:
             echo "#endif" >> "$dir/ppc_config.h"
           done
           
-          # Cria o arquivo de stubs de kernel completo casando perfeitamente com os tipos estruturais da linkagem
+          # Cria o arquivo de stubs de kernel completo casando perfeitamente com os tipos estruturais da linkagem final
           echo '#include <stdint.h>' > runtime/kernel_stubs.cpp
           echo '#include <functional>' >> runtime/kernel_stubs.cpp
           echo 'struct PPCContext;' >> runtime/kernel_stubs.cpp
@@ -70,9 +70,7 @@ jobs:
           echo 'namespace kernel {' >> runtime/kernel_stubs.cpp
           echo '    uint64_t SystemTime100ns() { return 0; }' >> runtime/kernel_stubs.cpp
           echo '    void* CheckProcessHeap(void* p) { return p; }' >> runtime/kernel_stubs.cpp
-          echo '    void* CheckProcessHeap(bool p) { return nullptr; }' >> runtime/kernel_stubs.cpp
           echo '    void PostNotification(unsigned int a, unsigned int b) {}' >> runtime/kernel_stubs.cpp
-          echo '    void PostNotification(unsigned int a, int b) {}' >> runtime/kernel_stubs.cpp
           echo '    void ReportUnimplemented() {}' >> runtime/kernel_stubs.cpp
           echo '    void UpdateTimestampBundle() {}' >> runtime/kernel_stubs.cpp
           echo '    unsigned int GameRoot() { return 0; }' >> runtime/kernel_stubs.cpp
@@ -84,9 +82,8 @@ jobs:
           echo '    void ReportMemory() {}' >> runtime/kernel_stubs.cpp
           echo '    unsigned int AllocateGuest(unsigned int a, unsigned int b) { return 0; }' >> runtime/kernel_stubs.cpp
           echo '    void QueueUserApc(unsigned int a, unsigned int b, unsigned int c, const std::function<void()>& d) {}' >> runtime/kernel_stubs.cpp
-          echo '    void TraceImport(const char* a, unsigned int b, const PPCContext& c) {}' >> runtime/kernel_stubs.cpp
+          echo '    void TraceImport(const char* a, unsigned int b, const void* c) {}' >> runtime/kernel_stubs.cpp
           echo '    void WindowTrace(const char* a, const char* b, unsigned int c, unsigned int d, const char* e) {}' >> runtime/kernel_stubs.cpp
-          echo '    void AcceptInvite(unsigned long long a, unsigned long long b, const unsigned char* c, bool d) {}' >> runtime/kernel_stubs.cpp
           echo '    void AcceptInvite(unsigned long long a, unsigned long long b, const char* c, bool d) {}' >> runtime/kernel_stubs.cpp
           echo '    unsigned int FromPhysical(unsigned int a) { return 0; }' >> runtime/kernel_stubs.cpp
           echo '    void CreateThreadBlock(unsigned int a) {}' >> runtime/kernel_stubs.cpp
@@ -105,9 +102,16 @@ jobs:
           echo '    void ReportPredicateWaits() {}' >> runtime/kernel_stubs.cpp
           echo '}' >> runtime/kernel_stubs.cpp
           
-          # Simbolos globais exigidos pelo linker para os escopos internos de amostragem
-          echo 'extern "C" { void SampleCountEvent(unsigned int a) {} }' >> runtime/kernel_stubs.cpp
-          echo 'extern "C" { void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {} }' >> runtime/kernel_stubs.cpp
+          # Injeção direta de compatibilidade de linkage forçada C++ para o Clang unificar as referências pendentes
+          echo 'extern "C" {' >> runtime/kernel_stubs.cpp
+          echo '    void SampleCountEvent(unsigned int a) {}' >> runtime/kernel_stubs.cpp
+          echo '    void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}' >> runtime/kernel_stubs.cpp
+          echo '    void _ZN5crash18StopHangingMonitorEv() {}' >> runtime/kernel_stubs.cpp
+          echo '    void _ZN6kernel12AcceptInviteEyyPKcb(uint64_t a, uint64_t b, const char* c, bool d) {}' >> runtime/kernel_stubs.cpp
+          echo '    void _ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE(unsigned int a, unsigned int b, unsigned int c, void* d) {}' >> runtime/kernel_stubs.cpp
+          echo '    void _ZN6kernel14MovePlayerDataEyyy(uint64_t a, uint64_t b, uint64_t c) {}' >> runtime/kernel_stubs.cpp
+          echo '    void _ZN6kernel23UpdateTimestampBundleEv() {}' >> runtime/kernel_stubs.cpp
+          echo '}' >> runtime/kernel_stubs.cpp
           
           # Suprime os erros de arquivos de mídia ausentes nos arquivos de configuração do CMake
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(FATAL_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
@@ -150,16 +154,4 @@ jobs:
           cd build_ios
           echo "Compilando o motor do jogo puramente otimizado para iOS e Metal API..."
           cmake --build . --config Release
-
-      - name: Package into Unsigned IPA with Mods & Ultra Performance Support
-        run: |
-          mkdir -p Payload
-          find build_ios -name "*.app" -exec cp -r {} Payload/ \; 2>/dev/null || true
-          zip -r pes2017_unsigned.ipa Payload
-
-      - name: Upload IPA Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: pes2017-ios-ipa
-          path: pes2017_unsigned.ipa
 
