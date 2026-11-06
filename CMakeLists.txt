@@ -169,8 +169,8 @@ if(ANDROID)
     target_compile_definitions(pes17 PRIVATE ${PES17_ONLINE_DEFINITIONS})
     target_link_libraries(pes17 PRIVATE ppc_recomp log android EGL GLESv3 OpenSLES aaudio)
 else()
-    # Adicionado dinamicamente o arquivo físico de stubs do iOS na listagem de fontes
-    add_executable(pes17 MACOSX_BUNDLE ${RUNTIME_SOURCES} "${CMAKE_SOURCE_DIR}/runtime/kernel_stubs_ios.cpp" "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp" ${PES17_ONLINE_SOURCES})
+    # Ativação limpa e nativa de App Bundle oficial da Apple para iOS
+    add_executable(pes17 MACOSX_BUNDLE ${RUNTIME_SOURCES} "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp" ${PES17_ONLINE_SOURCES})
     target_compile_definitions(pes17 PRIVATE ${PES17_ONLINE_DEFINITIONS})
     
     # Vinculando apenas o núcleo do recompilador e frameworks da própria Apple de forma limpa
