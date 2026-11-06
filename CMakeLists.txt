@@ -95,9 +95,16 @@ file(GLOB RUNTIME_SOURCES CONFIGURE_DEPENDS
      "${CMAKE_SOURCE_DIR}/runtime/gpu/vulkan/*.cpp"
      "${CMAKE_SOURCE_DIR}/runtime/gpu/xe/*.cpp")
 
-# Mapear os cabeçalhos do FFmpeg caso esteja compilando no ambiente Apple (macOS/iOS)
+# Mapear de forma ampla os cabeçalhos do FFmpeg no ambiente Apple (macOS/iOS)
 if(APPLE)
-    include_directories("/opt/homebrew/include")
+    include_directories(
+        "${CMAKE_PREFIX_PATH}/include"
+        "${CMAKE_BINARY_DIR}/include"
+        "${CMAKE_SOURCE_DIR}/third_party/include"
+        "${CMAKE_SOURCE_DIR}/deps/include"
+        "/opt/homebrew/include"
+        "/usr/local/include"
+    )
 endif()
 
 # Xenia's shader interpreter, vendored with shims for the rex/ headers it
