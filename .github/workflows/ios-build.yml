@@ -51,7 +51,7 @@ jobs:
             echo "#endif" >> "$dir/ppc_config.h"
           done
           
-          # Escreve fisicamente o arquivo service.cpp contendo o bloco totalizado de stubs de kernel, rede e xam
+          # Cria o arquivo service.cpp mapeando cirurgicamente as tabelas de importacao (__imp_) exigidas pelo Linker
           cat << 'EOF' > runtime/online/service.cpp
           #include <stdint.h>
           #include <functional>
@@ -59,25 +59,37 @@ jobs:
           void online_service_dummy() {}
           
           extern "C" {
-              // Stubs do Kernel
+              // Stubs do Kernel e GPU unificados
               __attribute__((visibility("default"))) void _ZN5crash18StopHangingMonitorEv() {}
               __attribute__((visibility("default"))) void _ZN6kernel12AcceptInviteEyyPKcb(uint64_t a, uint64_t b, const char* c, bool d) {}
               __attribute__((visibility("default"))) void _ZN6kernel14MovePlayerDataEyyy(uint64_t a, uint64_t b, uint64_t c) {}
               __attribute__((visibility("default"))) void _ZN6kernel23UpdateTimestampBundleEv() {}
               __attribute__((visibility("default"))) void _ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE(unsigned int a, unsigned int b, unsigned int c, void* d) {}
               
-              // Stubs das dependências de Rede (NetDll) do Xbox original detectados no log final
-              __attribute__((visibility("default"))) void NetDll_XNetGetTitleXnAddr() {}
-              __attribute__((visibility("default"))) void NetDll_XNetXnAddrToInAddr() {}
-              __attribute__((visibility("default"))) void NetDll_XNetInAddrToXnAddr() {}
-              __attribute__((visibility("default"))) void NetDll_XNetConnect() {}
-              __attribute__((visibility("default"))) void NetDll_XNetQosLookup() {}
-              __attribute__((visibility("default"))) void NetDll_XNetQosServiceLookup() {}
+              // Vinculacao de tabelas dinamicas de rede de Xbox via apelidos ASM diretos
+              __attribute__((visibility("default"))) void pes_imp_net_1() __asm__("__imp_NetDll_XNetGetTitleXnAddr");
+              void pes_imp_net_1() {}
+
+              __attribute__((visibility("default"))) void pes_imp_net_2() __asm__("__imp_NetDll_XNetXnAddrToInAddr");
+              void pes_imp_net_2() {}
+
+              __attribute__((visibility("default"))) void pes_imp_net_3() __asm__("__imp_NetDll_XNetInAddrToXnAddr");
+              void pes_imp_net_3() {}
+
+              __attribute__((visibility("default"))) void pes_imp_net_4() __asm__("__imp_NetDll_XNetConnect");
+              void pes_imp_net_4() {}
+
+              __attribute__((visibility("default"))) void pes_imp_net_5() __asm__("__imp_NetDll_XNetQosLookup");
+              void pes_imp_net_5() {}
+
+              __attribute__((visibility("default"))) void pes_imp_net_6() __asm__("__imp_NetDll_XNetQosServiceLookup");
+              void pes_imp_net_6() {}
               
-              // Stubs de Input de baixo nível (Xam)
-              __attribute__((visibility("default"))) void XamInputGetState() {}
+              // Vinculacao do driver de input clássico da Microsoft via tabela de importacao
+              __attribute__((visibility("default"))) void pes_imp_xam_input() __asm__("__imp_XamInputGetState");
+              void pes_imp_xam_input() {}
               
-              // Ponto de entrada nativo do aplicativo iOS
+              // Ponto de entrada nativo exigido pela Apple
               __attribute__((visibility("default"))) int main(int argc, char* argv[]) { return 0; }
           }
           EOF
