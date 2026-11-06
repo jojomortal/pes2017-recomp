@@ -32,8 +32,8 @@ namespace kernel {
     __attribute__((weak)) void UpdateTimestampBundle() {}
     __attribute__((weak)) const std::filesystem::path& GameRoot() { static std::filesystem::path p; return p; }
 
-    // Correções cirúrgicas de tipos (casando 100% com o log do Clang)
-    __attribute__((weak)) void GuestFunction(uint32_t address) {}
+    // Correções cirúrgicas de tipos (casando 100% com o tipo de retorno PPCFunc* exigido pelo Clang)
+    __attribute__((weak)) PPCFunc* GuestFunction(uint32_t address) { return nullptr; }
     __attribute__((weak)) bool CheckProcessHeap(bool quiet) { return true; }
     __attribute__((weak)) uint32_t CreateThreadBlock(uint32_t threadid) { return 0; }
     __attribute__((weak)) bool FreeGuest(uint32_t address) { return true; }
