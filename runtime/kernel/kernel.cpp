@@ -6,7 +6,7 @@
 // Estruturas nativas do ecossistema do PES 2017
 struct PPCContext;
 
-// 1. Forçar a exportação global de linkage para o ecossistema Apple (iOS) através de escopo C limpo
+// 1. Exportação global de linkage para o ecossistema Apple (iOS) através de escopo C limpo
 extern "C" {
     __attribute__((visibility("default"))) uint64_t SystemTime100ns() { return 0; }
     __attribute__((visibility("default"))) void ReportUnimplemented() {}
@@ -24,9 +24,6 @@ extern "C" {
     // Vinculação de escopo puro exigida para amostragem de frames da GPU
     __attribute__((visibility("default"))) void SampleCountEvent(unsigned int a) {}
     __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
-    
-    // Exportação forçada de stubs de crash remanescentes detectados no log
-    __attribute__((visibility("default"))) void _ZN5crash18StopHangingMonitorEv() {}
 }
 
 // 2. Mocks das estruturas internas de namespaces exigidas pela engine principal
