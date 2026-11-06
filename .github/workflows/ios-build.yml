@@ -70,6 +70,7 @@ jobs:
           echo 'namespace kernel {' >> runtime/kernel_stubs.cpp
           echo '    __attribute__((visibility("default"))) uint64_t SystemTime100ns() { return 0; }' >> runtime/kernel_stubs.cpp
           echo '    __attribute__((visibility("default"))) void* CheckProcessHeap(void* p) { return p; }' >> runtime/kernel_stubs.cpp
+          echo '    __attribute__((visibility("default"))) void* CheckProcessHeap(bool p) { return nullptr; }' >> runtime/kernel_stubs.cpp
           echo '    __attribute__((visibility("default"))) void PostNotification(uint32_t a, uint32_t b) {}' >> runtime/kernel_stubs.cpp
           echo '    __attribute__((visibility("default"))) void ReportUnimplemented() {}' >> runtime/kernel_stubs.cpp
           echo '    __attribute__((visibility("default"))) void UpdateTimestampBundle() {}' >> runtime/kernel_stubs.cpp
@@ -113,8 +114,6 @@ jobs:
           echo "Desativando dependencias de audio nativo Android e relatorios de crash de baixo nivel..."
           find . -name "audio.cpp" -exec sh -c 'echo "/* Desativado para o build iOS */" > "{}"' \;
           find . -name "crash.cpp" -exec sh -c 'echo "/* Desativado para evitar travas de baixo nivel no iOS */" > "{}"' \;
-          
-          # Cria o xma.cpp com uma função vazia válida para o compilador não reclamar de arquivo completamente em branco
           echo 'void xma_dummy_anchor() {}' > runtime/apu/xma.cpp
 
           echo "Injetando definicoes de compatibilidade funcional diretamente no topo do command_processor..."
@@ -125,7 +124,7 @@ jobs:
           ' {} + || true
 
           echo "Desativando o arquivo d3d_hooks para evitar erros de macros no ecossistema Apple..."
-          find . -type f -name "d3d_hooks.cpp" -exec sh -c 'echo "/* Ignorado para Launcher Limpo iOS */" > "{}"' \;
+          find . -type f -name "d3d_hooks.cpp" -exec sh -c 'echo "/* Ignorado para Launcher Clean iOS */" > "{}"' \;
 
       - name: Configure CMake for iOS Project
         run: |
@@ -141,7 +140,7 @@ jobs:
             -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
             -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
 
-      - name: Compile, Archive and Package IPA
+      - name: Compile and Archive App
         run: |
           cd build_ios
           echo "Compilando o motor do jogo puramente otimizado para iOS e Metal API..."
