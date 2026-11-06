@@ -51,15 +51,6 @@ jobs:
             echo "#endif" >> "$dir/ppc_config.h"
           done
           
-          # TRUQUE DE CONVERSÃO APPLE: Transforma o arquivo de kernel em Objective-C++ de forma nativa
-          if [ -f "runtime/kernel/kernel.cpp" ]; then
-            echo "Convertendo o modulo de kernel para o compilador Objective-C++ (.mm)..."
-            mv runtime/kernel/kernel.cpp runtime/kernel/kernel.mm
-            
-            # Altera dinamicamente as chamadas de extensao do CMakeLists.txt
-            find . -name "CMakeLists.txt" -exec sed -i '' 's/kernel\/kernel.cpp/kernel\/kernel.mm/g' {} + || true
-          fi
-          
           # Remove travas de arquivos de mídia ausentes nos CMakeLists
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(FATAL_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(SEND_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
@@ -87,7 +78,7 @@ jobs:
             -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
             -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
 
-          echo "3. Compilando o executavel com o modulo Objective-C++..."
+          echo "3. Compilando o executavel App Bundle..."
           make pes17
 
           echo "4. Montando a estrutura Payload do IPA de forma garantida..."
