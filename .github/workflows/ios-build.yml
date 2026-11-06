@@ -76,6 +76,11 @@ jobs:
           find . -name "audio.cpp" -exec sh -c 'echo "/* Desativado para o build iOS */" > "{}"' \;
           find . -name "crash.cpp" -exec sh -c 'echo "/* Desativado para evitar travas de baixo nivel no iOS */" > "{}"' \;
 
+          echo "Injetando compatibilidade para FFmpeg moderno no arquivo xma.cpp..."
+          find . -type f -name "xma.cpp" -exec sed -i '' '1i\
+          #define AV_CODEC_ID_XMAFRAMES AV_CODEC_ID_XMA2\
+          ' {} + || true
+
           echo "Injetando definicoes de compatibilidade funcional diretamente no topo do command_processor..."
           find . -type f -name "command_processor.cpp" -exec sed -i '' '1i\
           #define PPC_QueryTimeBase() 0\
