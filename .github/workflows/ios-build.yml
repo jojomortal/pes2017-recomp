@@ -61,7 +61,7 @@ jobs:
           echo '    __attribute__((visibility("default"))) void _ZN6kernel23UpdateTimestampBundleEv() {}' >> runtime/kernel/kernel.cpp
           echo '    __attribute__((visibility("default"))) void _ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE(unsigned int a, unsigned int b, unsigned int c, void* d) {}' >> runtime/kernel/kernel.cpp
           echo '    __attribute__((visibility("default"))) int main(int argc, char* argv[]) { return 0; }' >> runtime/kernel/kernel.cpp
-          echo '}' >> runtime/kernel_stubs_ios.cpp
+          echo '}' >> runtime/kernel/kernel.cpp
           
           # Remove travas de arquivos de mídia ausentes nos CMakeLists
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(FATAL_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
@@ -106,7 +106,7 @@ jobs:
           zip -r pes2017_unsigned.ipa Payload
 
       - name: Upload IPA Artifact
-        uses: actions/with-upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: pes2017-ios-ipa
           path: pes2017_unsigned.ipa
