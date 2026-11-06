@@ -6,17 +6,11 @@
 // Estruturas nativas do ecossistema do PES 2017
 struct PPCContext;
 
-// 1. Vinculação pura e direta para funções globais do sistema de frames e crash
-extern "C" {
-    __attribute__((visibility("default"))) void SampleCountEvent(unsigned int a) {}
-    __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
-}
-
-// 2. Mocks de Kernel com visibilidade pública forçada no padrão C++ (Mangled) para o Linker do iOS
 namespace kernel {
     void Initialise() {}
     void Shutdown() {}
 
+    // 1. Funções de Kernel com visibilidade aberta exigidas pelo motor gráfico e de mídia
     __attribute__((visibility("default"))) uint64_t SystemTime100ns() { return 0; }
     __attribute__((visibility("default"))) void ReportUnimplemented() {}
     __attribute__((visibility("default"))) void ReportAllocRate() {}
@@ -26,24 +20,18 @@ namespace kernel {
     __attribute__((visibility("default"))) void CompleteOverlapped(unsigned int a, unsigned int b) {}
     __attribute__((visibility("default"))) void WindowTrace(char const* a, char const* b, unsigned int c, unsigned int d, char const* e) {}
     __attribute__((visibility("default"))) void TraceImport(char const* a, unsigned int b, const void* p) {}
-    __attribute__((visibility("default"))) void AcceptInvite(unsigned long long a, unsigned long long b, char const* c, bool d) {}
     __attribute__((visibility("default"))) uint32_t ToPhysical(unsigned int a) { return 0; }
     __attribute__((visibility("default"))) uint32_t FromPhysical(unsigned int a) { return 0; }
 
-    // Métodos dinâmicos com linkage fraco para evitar qualquer conflito com o gerador automático
+    // 2. Mocks adicionais protegidos por linkage fraco contra duplicidades sintáticas
     __attribute__((weak, visibility("default"))) uint32_t AllocateGuest(unsigned int a, unsigned int b) { return 0; }
-    __attribute__((weak, visibility("default"))) void MovePlayerData(unsigned long long a, unsigned long long b, unsigned long long c) {}
     __attribute__((weak, visibility("default"))) void PostNotification(unsigned int a, unsigned int b) {}
-    __attribute__((weak, visibility("default"))) void UpdateTimestampBundle() {}
     __attribute__((weak, visibility("default"))) const std::filesystem::path& GameRoot() { static std::filesystem::path p; return p; }
-
     __attribute__((weak, visibility("default"))) PPCFunc* GuestFunction(uint32_t address) { return nullptr; }
     __attribute__((weak, visibility("default"))) bool CheckProcessHeap(bool quiet) { return true; }
     __attribute__((weak, visibility("default"))) uint32_t CreateThreadBlock(uint32_t threadid) { return 0; }
     __attribute__((weak, visibility("default"))) bool FreeGuest(uint32_t address) { return true; }
-    
     __attribute__((weak, visibility("default"))) void TraceImport(char const* a, unsigned int b, const PPCContext& c) {}
-    __attribute__((weak, visibility("default"))) void QueueUserApc(unsigned int a, unsigned int b, unsigned int c, const std::function<void()>& d) {}
 }
 
 namespace crash {
@@ -54,4 +42,15 @@ namespace crash {
 
 namespace engine {
     __attribute__((visibility("default"))) void ReportPredicateWaits() {}
+}
+
+// 3. Forçar as decorações exatas exigidas pelo Linker final (arm64 iOS) via bloco de amarração externa pura
+extern "C" {
+    __attribute__((visibility("default"))) void SampleCountEvent(unsigned int a) {}
+    __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
+    __attribute__((visibility("default"))) void _ZN5crash18StopHangingMonitorEv() {}
+    __attribute__((visibility("default"))) void _ZN6kernel12AcceptInviteEyyPKcb(uint64_t a, uint64_t b, const char* c, bool d) {}
+    __attribute__((visibility("default"))) void _ZN6kernel14MovePlayerDataEyyy(uint64_t a, uint64_t b, uint64_t c) {}
+    __attribute__((visibility("default"))) void _ZN6kernel23UpdateTimestampBundleEv() {}
+    __attribute__((visibility("default"))) void _ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE(unsigned int a, unsigned int b, unsigned int c, void* d) {}
 }
