@@ -169,7 +169,8 @@ if(ANDROID)
     target_compile_definitions(pes17 PRIVATE ${PES17_ONLINE_DEFINITIONS})
     target_link_libraries(pes17 PRIVATE ppc_recomp log android EGL GLESv3 OpenSLES aaudio)
 else()
-    add_executable(pes17 ${RUNTIME_SOURCES} "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp" ${PES17_ONLINE_SOURCES})
+    # Forçar a criação de um App Bundle válido no ecossistema Apple usando MACOSX_BUNDLE
+    add_executable(pes17 MACOSX_BUNDLE ${RUNTIME_SOURCES} "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp" ${PES17_ONLINE_SOURCES})
     target_compile_definitions(pes17 PRIVATE ${PES17_ONLINE_DEFINITIONS})
     
     # Vinculando apenas o núcleo do recompilador e frameworks da própria Apple de forma limpa
@@ -180,11 +181,6 @@ else()
         "-framework CoreMedia"
         "-framework CoreVideo"
     )
-    
-    # TRUQUE DE CONTORNO DO LINKER: Ignorar simbolos de kernel ausentes para fechar o IPA do launcher limpo
-    if(APPLE)
-        target_link_options(pes17 PRIVATE "-Wl,-flat_namespace,-undefined,suppress")
-    endif()
     
     # Incluir o caminho do runtime para que as subpastas localizem o arquivo title.h
     target_include_directories(pes17 PRIVATE "${CMAKE_SOURCE_DIR}/runtime")
