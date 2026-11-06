@@ -17,7 +17,6 @@
 @implementation PESAppDelegate
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    // Código executado no EXATO milissegundo em que o usuário toca no ícone no iPhone
     try {
         // Busca de forma oficial o caminho absoluto da pasta Documents pública do Sandbox do iOS
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
@@ -99,15 +98,14 @@ namespace engine {
     __attribute__((visibility("default"))) void ReportPredicateWaits() {}
 }
 
-// 2. Vinculações puras remanescentes de escopo C exigidas pela GPU e ponto de entrada oficial do iOS
+// 2. Vinculações de escopo C puro exigidas pela GPU e ponto de entrada oficial da Apple
 extern "C" {
     __attribute__((visibility("default"))) void SampleCountEvent(unsigned int a) {}
     __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
 
-    // O ponto de entrada padrão da Apple que aciona os privilégios do Info.plist e inicializa o App Bundle móvel
+    // BLINDAGEM DO MAIN: Escopo C puro forçado extern C para o Linker arm64 encontrar o símbolo _main nativo
     __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
         @autoreleasepool {
-            // Inicializa oficialmente o ciclo de vida do iOS chamando o nosso AppDelegate customizado
             return UIApplicationMain(argc, argv, nil, NSStringFromClass([PESAppDelegate class]));
         }
     }
