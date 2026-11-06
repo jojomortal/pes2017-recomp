@@ -10,7 +10,7 @@ namespace kernel {
     void Initialise() {}
     void Shutdown() {}
 
-    // 1. Funções de Kernel com visibilidade aberta exigidas pelo motor gráfico e de mídia
+    // 1. Funções globais básicas com visibilidade default
     __attribute__((visibility("default"))) uint64_t SystemTime100ns() { return 0; }
     __attribute__((visibility("default"))) void ReportUnimplemented() {}
     __attribute__((visibility("default"))) void ReportAllocRate() {}
@@ -23,7 +23,7 @@ namespace kernel {
     __attribute__((visibility("default"))) uint32_t ToPhysical(unsigned int a) { return 0; }
     __attribute__((visibility("default"))) uint32_t FromPhysical(unsigned int a) { return 0; }
 
-    // 2. Mocks consolidados como definicoes fortes para o Linker arm64 vincular de forma garantida
+    // 2. Mocks estruturais nativos do ecossistema
     __attribute__((visibility("default"))) uint32_t AllocateGuest(unsigned int a, unsigned int b) { return 0; }
     __attribute__((visibility("default"))) void PostNotification(unsigned int a, unsigned int b) {}
     __attribute__((visibility("default"))) const std::filesystem::path& GameRoot() { static std::filesystem::path p; return p; }
@@ -32,12 +32,6 @@ namespace kernel {
     __attribute__((visibility("default"))) uint32_t CreateThreadBlock(uint32_t threadid) { return 0; }
     __attribute__((visibility("default"))) bool FreeGuest(uint32_t address) { return true; }
     __attribute__((visibility("default"))) void TraceImport(char const* a, unsigned int b, const PPCContext& c) {}
-    __attribute__((visibility("default"))) void UpdateTimestampBundle() {}
-
-    // Assinaturas exatas mapeadas com linkage forte para os Mangled Names do ecossistema Apple
-    __attribute__((visibility("default"))) void AcceptInvite(uint64_t a, uint64_t b, const unsigned char* c, bool d) {}
-    __attribute__((visibility("default"))) void MovePlayerData(uint64_t a, uint64_t b, uint64_t c) {}
-    __attribute__((visibility("default"))) void QueueUserApc(unsigned int a, unsigned int b, unsigned int c, const std::function<void()>& d) {}
 }
 
 namespace crash {
@@ -50,8 +44,24 @@ namespace engine {
     __attribute__((visibility("default"))) void ReportPredicateWaits() {}
 }
 
-// 3. Vinculações puras remanescentes de escopo C exigidas pela GPU
+// 3. O SEGREDO DO SUCESSO: Forçar o apelido do símbolo binário exato exigido pelo Linker (asm)
 extern "C" {
     __attribute__((visibility("default"))) void SampleCountEvent(unsigned int a) {}
     __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
+    
+    // Vinculação cirúrgica com o exato nome que o Linker do Xcode reclamou na tela
+    __attribute__((visibility("default"))) void pes_stub_stop_hang() __asm__("_ZN5crash18StopHangingMonitorEv");
+    void pes_stub_stop_hang() {}
+
+    __attribute__((visibility("default"))) void pes_stub_accept() __asm__("_ZN6kernel12AcceptInviteEyyPKcb");
+    void pes_stub_accept() {}
+
+    __attribute__((visibility("default"))) void pes_stub_move() __asm__("_ZN6kernel14MovePlayerDataEyyy");
+    void pes_stub_move() {}
+
+    __attribute__((visibility("default"))) void pes_stub_timestamp() __asm__("_ZN6kernel23UpdateTimestampBundleEv");
+    void pes_stub_timestamp() {}
+
+    __attribute__((visibility("default"))) void pes_stub_apc() __asm__("_ZN6kernel12QueueUserApcEjjjRKNSt3__18functionIFvvEEE");
+    void pes_stub_apc() {}
 }
