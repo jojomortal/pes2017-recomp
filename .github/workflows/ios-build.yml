@@ -21,8 +21,12 @@ jobs:
 
       - name: Bypass, Configure, Compile and Package Launcher
         run: |
-          echo "1. Criando stubs de compatibilidade binaria basica..."
+          echo "1. Criando stubs e simulacoes estruturais..."
           mkdir -p ppc pes
+          
+          # Limpeza profunda de builds anteriores para evitar cache falso do Linker
+          rm -rf build_ios
+          mkdir -p build_ios
           
           for dir in "ppc"; do
             echo "/* Mock */" > "$dir/ppc_func_mapping.cpp"
@@ -49,7 +53,7 @@ jobs:
             echo "#endif" >> "$dir/ppc_config.h"
           done
           
-          # Remove travas de arquivos de mídia ausentes
+          # Remove travas de arquivos de mídia ausentes nos CMakeLists
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(FATAL_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(SEND_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
           
@@ -64,8 +68,8 @@ jobs:
           ' {} + || true
           find . -type f -name "d3d_hooks.cpp" -exec sh -c 'echo "/* Ignorado */" > "{}"' \;
 
-          echo "2. Configurando o ambiente CMake para Unix Makefiles..."
-          mkdir -p build_ios && cd build_ios
+          echo "2. Configurando o ambiente CMake limpo..."
+          cd build_ios
           cmake .. -G "Unix Makefiles" \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_SYSROOT=iphoneos \
@@ -76,7 +80,7 @@ jobs:
             -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
             -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
 
-          echo "3. Compilando o executavel de forma linear..."
+          echo "3. Compilando o executavel..."
           make pes17
 
           echo "4. Montando a estrutura Payload do IPA..."
