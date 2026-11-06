@@ -32,11 +32,11 @@ namespace kernel {
     __attribute__((weak, visibility("default"))) uint32_t CreateThreadBlock(uint32_t threadid) { return 0; }
     __attribute__((weak, visibility("default"))) bool FreeGuest(uint32_t address) { return true; }
     __attribute__((weak, visibility("default"))) void TraceImport(char const* a, unsigned int b, const PPCContext& c) {}
-
-    // Ajuste exato das assinaturas C++ que o linker estava pedindo para casar os mangled names
-    __attribute__((weak, visibility("default"))) void AcceptInvite(unsigned long long a, unsigned long long b, char const* c, bool d) {}
-    __attribute__((weak, visibility("default"))) void MovePlayerData(unsigned long long a, unsigned long long b, unsigned long long c) {}
     __attribute__((weak, visibility("default"))) void UpdateTimestampBundle() {}
+
+    // Correções matemáticas exatas das assinaturas para gerar os Mangled Names perfeitos para arm64
+    __attribute__((weak, visibility("default"))) void AcceptInvite(uint64_t a, uint64_t b, const unsigned char* c, bool d) {}
+    __attribute__((weak, visibility("default"))) void MovePlayerData(uint64_t a, uint64_t b, uint64_t c) {}
     __attribute__((weak, visibility("default"))) void QueueUserApc(unsigned int a, unsigned int b, unsigned int c, const std::function<void()>& d) {}
 }
 
