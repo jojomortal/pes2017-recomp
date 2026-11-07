@@ -29,7 +29,7 @@ jobs:
           echo "/* Mock Mapping */" > ppc/ppc_func_mapping.cpp
           dd if=/dev/zero of=pes/default.xex bs=1024 count=500
           
-          # ESTRUTURAÇÃO DO SHIM DA GPU XENON (Modelo MCLA-4iOS e NFSMW)
+          # ESTRUTURAÇÃO DO SHIM DA GPU XENON (Modelo MCLA-4iOS e MK9)
           mkdir -p build_ios/rex
           mkdir -p build_ios/rex/graphics
           mkdir -p build_ios/rex/graphics/pipeline/shader
@@ -50,7 +50,7 @@ jobs:
           #endif
           EOF
           
-          # COBRE TODAS AS ROTAS: Injeta o cabeçalho ppc_recomp_shared.h em cada canto da árvore para o console.cpp ler instantaneamente
+          # Injeta o cabeçalho ppc_recomp_shared.h em cada canto de busca da árvore
           for dir in "." "ppc" "runtime" "build_ios" "runtime/kernel" "runtime/gpu" "runtime/gpu/xe"; do
             mkdir -p "$dir"
             echo "#ifndef PPC_RECOMP_SHARED_H" > "$dir/ppc_recomp_shared.h"
@@ -99,11 +99,6 @@ jobs:
           #define PPC_querytimebase() 1\
           ' {} + || true
 
-          # INJEÇÃO DA ASSINATURA DE NAMESPACE DIRETAMENTE NA CABEÇA DO ARQUIVO INTERPRETER
-          find . -name "interpreter.cpp" -exec sed -i '' '1i\
-          namespace xe { class Interpreter; namespace ucode { struct VertexFetchInstruction; } }\
-          ' {} + || true
-
           echo "2. Configurando o ambiente CMake limpo..."
           cd build_ios
           cmake .. -G "Unix Makefiles" \
@@ -113,8 +108,8 @@ jobs:
             -DPES17_USE_METAL=ON \
             -DENABLE_AUDIO_DISABLED=ON \
             -DENABLE_AUDIO_SDL=OFF \
-            -DCMAKE_C_FLAGS="-O3 -ffast-math -I../build_ios/ -I../runtime/ -I../runtime/gpu/xe/ -Wno-header-guard -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
-            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -I../build_ios/ -I../runtime/ -I../runtime/gpu/xe/ -Wno-header-guard -DShaderInterpreter=xe::Interpreter -Ducode=xe::ucode -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
+            -DCMAKE_C_FLAGS="-O3 -ffast-math -w -I../build_ios/ -I../runtime/ -I../runtime/gpu/xe/ -Wno-header-guard -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -w -I../build_ios/ -I../runtime/ -I../runtime/gpu/xe/ -Wno-header-guard -Wno-nested-anon-types -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
 
           echo "3. Compilando o executavel..."
           make pes17
