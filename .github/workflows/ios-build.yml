@@ -53,24 +53,24 @@ jobs:
           EOF
           
           for dir in "." "ppc" "runtime"; do
-            echo "#ifndef PPC_RECOMP_SHARED_H" > "$dir/ppc_recomp_shared.h"
-            echo "#define PPC_RECOMP_SHARED_H" >> "$dir/ppc_recomp_shared.h"
-            echo "#include <stdint.h>" >> "$dir/ppc_recomp_shared.h"
-            echo "#define SDL_AUDIO_DISABLED 1" >> "$dir/ppc_recomp_shared.h"
-            echo "typedef union { uint64_t u64; uint32_t u32; } PPCReg;" >> "$dir/ppc_recomp_shared.h"
-            echo "struct PPCContext {" >> "$dir/ppc_recomp_shared.h"
-            echo "    PPCReg r1; PPCReg r2; PPCReg r3; PPCReg r4; PPCReg r5; PPCReg r6; PPCReg r7; PPCReg r8; PPCReg r9; PPCReg r10;" >> "$dir/ppc_recomp_shared.h"
-            echo "    PPCReg r11; PPCReg r12; PPCReg r13; PPCReg r14; PPCReg r15; PPCReg r16; PPCReg r17; PPCReg r18; PPCReg r19; PPCReg r20;" >> "$dir/ppc_recomp_shared.h"
-            echo "    PPCReg r21; PPCReg r22; PPCReg r23; PPCReg r24; PPCReg r25; PPCReg r26; PPCReg r27; PPCReg r28; PPCReg r29; PPCReg r30;" >> "$dir/ppc_recomp_shared.h"
-            echo "    PPCReg r31; PPCReg r32;" >> "$dir/ppc_recomp_shared.h"
-            echo "    PPCReg lr; PPCReg ctr; PPCReg xer; PPCReg fpscr;" >> "$dir/ppc_recomp_shared.h"
-            echo "    uint32_t lr_gpr; uint32_t msr;" >> "$dir/ppc_recomp_shared.h"
-            echo "};" >> "$dir/ppc_recomp_shared.h"
-            echo "typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);" >> "$dir/ppc_recomp_shared.h"
-            echo "#endif" >> "$dir/ppc_recomp_shared.h"
-            echo "#ifndef PPC_CONFIG_H" > "$dir/ppc_config.h"
-            echo "#define PPC_CONFIG_H" >> "$dir/ppc_config.h"
-            echo "#endif" >> "$dir/ppc_config.h"
+            echo "#ifndef PPC_RECOMP_SHARED_H" > "$dir/PPC_RECOMP_SHARED_H"
+            echo "#define PPC_RECOMP_SHARED_H" >> "$dir/PPC_RECOMP_SHARED_H"
+            echo "#include <stdint.h>" >> "$dir/PPC_RECOMP_SHARED_H"
+            echo "#define SDL_AUDIO_DISABLED 1" >> "$dir/PPC_RECOMP_SHARED_H"
+            echo "typedef union { uint64_t u64; uint32_t u32; } PPCReg;" >> "$dir/PPC_RECOMP_SHARED_H"
+            echo "struct PPCContext {" >> "$dir/PPC_RECOMP_SHARED_H"
+            echo "    PPCReg r1; PPCReg r2; PPCReg r3; PPCReg r4; PPCReg r5; PPCReg r6; PPCReg r7; PPCReg r8; PPCReg r9; PPCReg r10;" >> "$dir/PPC_RECOMP_SHARED_H"
+            echo "    PPCReg r11; PPCReg r12; PPCReg r13; PPCReg r14; PPCReg r15; PPCReg r16; PPCReg r17; PPCReg r18; PPCReg r19; PPCReg r20;" >> "$dir/PPC_RECOMP_SHARED_H"
+            echo "    PPCReg r21; PPCReg r22; PPCReg r23; PPCReg r24; PPCReg r25; PPCReg r26; PPCReg r27; PPCReg r28; PPCReg r29; PPCReg r30;" >> "$dir/PPC_RECOMP_SHARED_H"
+            echo "    PPCReg r31; PPCReg r32;" >> "$dir/PPC_RECOMP_SHARED_H"
+            echo "    PPCReg lr; PPCReg ctr; PPCReg xer; PPCReg fpscr;" >> "$dir/PPC_RECOMP_SHARED_H"
+            echo "    uint32_t lr_gpr; uint32_t msr;" >> "$dir/PPC_RECOMP_SHARED_H"
+            echo "};" >> "$dir/PPC_RECOMP_SHARED_H"
+            echo "typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);" >> "$dir/PPC_RECOMP_SHARED_H"
+            echo "#endif" >> "$dir/PPC_RECOMP_SHARED_H"
+            echo "#ifndef PPC_CONFIG_H" > "$dir/PPC_CONFIG_H"
+            echo "#define PPC_CONFIG_H" >> "$dir/PPC_CONFIG_H"
+            echo "#endif" >> "$dir/PPC_CONFIG_H"
           done
           
           # Remove travas de arquivos de mídia ausentes nos CMakeLists originais de forma limpa
@@ -96,6 +96,12 @@ jobs:
           #define PPC_QueryTimeBase() 1\
           #define PPC_QueryTimebase() 1\
           #define PPC_querytimebase() 1\
+          ' {} + || true
+
+          # INJEÇÃO DA ASSINATURA DE NAMESPACE DIRETAMENTE NA CABEÇA DO ARQUIVO INTERPRETER
+          # Isso cria o escopo estável que o Clang exige sem precisar consertar as fontes originais
+          find . -name "interpreter.cpp" -exec sed -i '' '1i\
+          namespace xe { class Interpreter; namespace ucode { struct VertexFetchInstruction; } }\
           ' {} + || true
 
           echo "2. Configurando o ambiente CMake limpo..."
