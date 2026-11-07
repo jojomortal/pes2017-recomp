@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <thread> // Inclusão mestre para controle de Threads nativas em C++
 
 // Importações nativas do ecossistema Apple móvel
 #import <UIKit/UIKit.h>
@@ -18,8 +19,12 @@
 
 static std::filesystem::path g_CaminhoJogoValido;
 static bool g_ArquivosDoJogoEncontrados = false;
+static bool g_MotorExecutando = false;
 static uint8_t* g_MemoriaVirtualConcedida = nullptr;
 static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
+
+// Declaração externa da função do compilador que inicia a leitura mestre do jogo
+extern "C" void loadFromGuest();
 
 // 1. Definição do SceneDelegate exigido pelas versões modernas do iOS
 @interface PESSceneDelegate : UIResponder <UIWindowSceneDelegate>
@@ -98,6 +103,19 @@ static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
                     memset(g_MemoriaVirtualConcedida, 0, g_TamanhoMemoriaXbox);
                 }
             }
+            
+            // DISPARO AS SÍNCRONO DA PORTABILIDADE: 
+            // Se os arquivos existirem, abre uma thread paralela dedicada para o motor de leitura trabalhar sem travar a interface da Apple
+            if (g_ArquivosDoJogoEncontrados && !g_MotorExecutando) {
+                g_MotorExecutando = true;
+                std::thread threadMotor([]() {
+                    try {
+                        loadFromGuest(); // Invoca a leitura em segundo plano do default.xex
+                    } catch (...) {}
+                });
+                threadMotor.detach(); // Libera a thread para rodar solta em background
+            }
+            
         } catch (...) {}
     }
     return YES;
@@ -108,7 +126,7 @@ static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
 }
 @end
 
-// GATILHOS DO GUEST: Restaura as assinaturas fundamentais que o motor usa para ler o binário (.xex)
+// GATILHOS DO GUEST
 extern "C" {
     __attribute__((visibility("default"))) void loadFromGuest() {}
     __attribute__((visibility("default"))) void _Z13loadFromGuestv() {}
@@ -157,13 +175,6 @@ extern "C" {
 
 __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
     @autoreleasepool {
-        int resultadoMovel = UIApplicationMain(argc, argv, @"UIApplication", NSStringFromClass([PESAppDelegate class]));
-        
-        if (!g_ArquivosDoJogoEncontrados) {
-            while (true) {
-                [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1.0]];
-            }
-        }
-        return resultadoMovel;
+        return UIApplicationMain(argc, argv, @"UIApplication", NSStringFromClass([PESAppDelegate class]));
     }
 }
