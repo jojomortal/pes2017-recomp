@@ -31,26 +31,18 @@ jobs:
           echo "/* Mock Mapping */" > ppc/ppc_func_mapping.cpp
           dd if=/dev/zero of=pes/default.xex bs=1024 count=500
           
-          # ESTRUTURAÇÃO DO SHIM DA GPU XENON (Modelo MCLA-4iOS e NFSMW)
+          # LIMPEZA E INJEÇÃO COMPLETA: Adicionado o arquivo types.h exigido pelo interpretador de Shaders
           mkdir -p build_ios/rex
           mkdir -p build_ios/rex/graphics
           mkdir -p build_ios/rex/graphics/pipeline/shader
           
           echo "/* Shim */" > build_ios/rex/assert.h
           echo "/* Shim */" > build_ios/rex/math.h
+          echo "/* Shim */" > build_ios/rex/types.h
           echo "/* Shim */" > build_ios/rex/graphics/registers.h
           echo "/* Shim */" > build_ios/rex/graphics/trace_writer.h
+          echo "/* Shim */" > build_ios/rex/graphics/xenos.h
           echo "/* Shim */" > build_ios/rex/graphics/pipeline/shader/interpreter.h
-          
-          # Injeta as assinaturas de barramento primitivo no xenos.h para o Clang passar sem erros de tipo
-          cat << 'EOF' > build_ios/rex/graphics/xenos.h
-          #ifndef REX_XENOS_H
-          #define REX_XENOS_H
-          #include <stdint.h>
-          typedef uint32_t XE_GPU_REG;
-          struct XeGpuState { uint32_t regs[0x4000]; };
-          #endif
-          EOF
           
           for dir in "." "ppc" "runtime"; do
             echo "#ifndef PPC_RECOMP_SHARED_H" > "$dir/ppc_recomp_shared.h"
