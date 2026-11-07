@@ -1,5 +1,5 @@
 #include "install.h"
-#include "kernel.h"
+#include "../kernel.h" // CORREÇÃO DE ROTA: Aponta para a pasta pai onde o kernel.h original reside
 #include <stdint.h>
 #include <string>
 #include <filesystem>
@@ -39,7 +39,7 @@ namespace install {
                     arquivoLog << "==================================================\n";
                     arquivoLog << "VFS REDIRECIONADO: Sucesso no mapeamento de disco!\n";
                     arquivoLog << "==================================================\n\n";
-                    arquivoLog << "Rota ativa para leitura de arquivos soltos: " << caminhoRaizStr << "\n";
+                    arquivoLog << "Rota activa para leitura de arquivos soltos: " << caminhoRaizStr << "\n";
                     arquivoLog.close();
                 }
             }
