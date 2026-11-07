@@ -92,10 +92,39 @@ jobs:
           rm -rf Payload
           mkdir -p Payload
           
-          # Copia a pasta oficial .app gerada nativamente pelo CMake com o Info.plist embutido perfeitamente de fábrica
+          # Copia recursivamente a pasta oficial do App Bundle (.app) gerada pelo CMake
           cp -R build_ios/pes17.app Payload/
+          
+          # Criação do Info.plist limpo e oficial com as permissões estruturadas dentro do Bundle copiado (Sem usar sed)
+          cat << 'EOF' > Payload/pes17.app/Info.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://apple.com">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleExecutable</key>
+              <string>pes17</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.community.pes2017recomp</string>
+              <key>CFBundleName</key>
+              <string>PES17-Launcher</string>
+              <key>CFBundleShortVersionString</key>
+              <string>1.0</string>
+              <key>CFBundleVersion</key>
+              <string>1.0</string>
+              <key>MinimumOSVersion</key>
+              <string>14.0</string>
+              <key>UIFileSharingEnabled</key>
+              <true/>
+              <key>LSSupportsOpeningDocumentsInPlace</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
 
-          # Fecha o arquivo .ipa legítimo da Apple
+          # INJEÇÃO SUPREMA DE PESO: Força a criação de um arquivo asset de 10 MB para preencher o contêiner móvel
+          dd if=/dev/zero of=Payload/pes17.app/pes17_massa_dados.bin bs=1024 count=10000
+
+          # Compacta a estrutura finalizada no formato correto exigido pela Apple
           zip -r pes2017_unsigned.ipa Payload
 
       - name: Upload IPA Artifact
