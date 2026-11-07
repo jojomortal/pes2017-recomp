@@ -7,6 +7,11 @@
 #include <cstdio>
 #include <cstdlib>
 
+#if defined(__APPLE__)
+#include <limits.h>
+extern "C" int _NSGetExecutablePath(char* buf, uint32_t* bufsize);
+#endif
+
 // Funcoes de baixo nivel exigidas pelo motor para registrar caminhos virtuais (VFS)
 extern "C" {
     __attribute__((visibility("default"))) void VFS_RegisterMount(const char* virtual_path, const char* physical_path);
@@ -20,25 +25,32 @@ namespace install {
         try {
             std::string caminhoRaizStr = ".";
 
-            // No iOS, pegamos o caminho do Bundle que mapeamos dinamicamente no platform.cpp
-            if (const char* iosBundleDir = std::getenv("PES17_IOS_BUNDLE_DIR")) {
-                caminhoRaizStr = std::string(iosBundleDir);
-                std::printf("[iOS VFS] Redirecionando VFS para o Bundle Interno: %s\n", caminhoRaizStr.c_str());
-            } else {
-                // Fallback seguro caso a variavel nao esteja pronta
-                if (std::filesystem::exists("massa_dados.bin")) {
-                    caminhoRaizStr = std::filesystem::current_path().string();
-                } else {
-                    std::filesystem::path raizPastaPes = std::filesystem::path(getenv("HOME") ? getenv("HOME") : ".") / "Documents/pes";
-                    std::filesystem::create_directories(raizPastaPes);
-                    caminhoRaizStr = raizPastaPes.string();
+#if defined(__APPLE__)
+            // Descobre o caminho do Bundle diretamente no momento da montagem dos arquivos usando buffer estatico seguro
+            char pathBuffer[PATH_MAX];
+            uint32_t size = sizeof(pathBuffer);
+            if (_NSGetExecutablePath(pathBuffer, &size) == 0) {
+                std::string exePath(pathBuffer);
+                size_t lastSlash = exePath.find_last_of("/");
+                if (lastSlash != std::string::npos) {
+                    caminhoRaizStr = exePath.substr(0, lastSlash);
+                    std::printf("[iOS VFS Nativo] Pasta de dados encontrada no Bundle: %s\n", caminhoRaizStr.c_str());
                 }
             }
+#else
+            if (std::filesystem::exists("massa_dados.bin")) {
+                caminhoRaizStr = std::filesystem::current_path().string();
+            } else {
+                std::filesystem::path raizPastaPes = std::filesystem::path(getenv("HOME") ? getenv("HOME") : ".") / "Documents/pes";
+                std::filesystem::create_directories(raizPastaPes);
+                caminhoRaizStr = raizPastaPes.string();
+            }
+#endif
             
             // Limpa os acessos anteriores do motor
             VFS_ClearMounts();
             
-            // Mapeia os caminhos logicos do Xbox 360 diretamente para a rota valida do iPhone
+            // Mapeia os caminhos logicos do Xbox 360 diretamente para a rota valida interna do iPhone
             VFS_RegisterMount("game:/", caminhoRaizStr.c_str());
             VFS_RegisterMount("d:/", caminhoRaizStr.c_str());
             VFS_RegisterMount("cache:/", caminhoRaizStr.c_str());
