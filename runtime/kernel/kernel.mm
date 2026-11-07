@@ -118,15 +118,15 @@ namespace engine {
     __attribute__((visibility("default"))) void ReportPredicateWaits() {}
 }
 
-// 3. Vinculações de escopo C puro exigidas pela GPU e ponto de entrada oficial da Apple
+// 2. Vinculações de escopo C puro exigidas pela GPU e ponto de entrada oficial da Apple
 extern "C" {
     __attribute__((visibility("default"))) void SampleCountEvent(unsigned int a) {}
     __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
+}
 
-    // Ponto de entrada oficial com escopo C limpo para o Linker arm64 casar com o símbolo _main nativo do iOS
-    __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
-        @autoreleasepool {
-            return UIApplicationMain(argc, argv, nil, NSStringFromClass([PESAppDelegate class]));
-        }
+// Ponto de entrada padrão limpo em escopo global (atende à exigência do Xcode App Bundle)
+__attribute__((visibility("default"))) int main(int argc, char* argv[]) {
+    @autoreleasepool {
+        return UIApplicationMain(argc, argv, nil, NSStringFromClass([PESAppDelegate class]));
     }
 }
