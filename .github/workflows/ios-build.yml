@@ -89,11 +89,6 @@ jobs:
           cat << 'EOF' > runtime/gpu/d3d_hooks.cpp
           extern "C" { void d3d_dummy() {} }
           EOF
-
-          # BYPASS DOS SHADERS: Neutraliza os dois arquivos de emulação legada de shaders para o Clang passar direto
-          echo "/* Desativado para iOS */" > runtime/gpu/xe/interpreter.cpp
-          echo "/* Desativado para iOS */" > runtime/gpu/xe/memexport.cpp
-          echo "/* Desativado para iOS */" > runtime/gpu/xe/ucode.cpp
           
           echo 'void xma_dummy_anchor() {}' > runtime/apu/xma.cpp
           
@@ -113,7 +108,7 @@ jobs:
             -DENABLE_AUDIO_DISABLED=ON \
             -DENABLE_AUDIO_SDL=OFF \
             -DCMAKE_C_FLAGS="-O3 -ffast-math -I../build_ios/ -I../runtime/gpu/xe/ -Wno-header-guard -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
-            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -I../build_ios/ -I../runtime/gpu/xe/ -Wno-header-guard -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -I../build_ios/ -I../runtime/gpu/xe/ -Wno-header-guard -DShaderInterpreter=xe::Interpreter -Ducode=xe::ucode -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
 
           echo "3. Compilando o executavel..."
           make pes17
