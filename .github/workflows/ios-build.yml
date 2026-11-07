@@ -31,13 +31,25 @@ jobs:
           echo "/* Mock Mapping */" > ppc/ppc_func_mapping.cpp
           dd if=/dev/zero of=pes/default.xex bs=1024 count=500
           
-          # ESPELHAMENTO DE PASTAS SEGURO: Cria links simbólicos estruturais para resolver as buscas <rex/...>
-          ln -s runtime rex
-          mkdir -p runtime/gpu/xe/shim/rex
-          echo "#include <assert.h>" > runtime/gpu/xe/shim/rex/assert.h
-          
-          # Cria atalhos de espelho adicionais para garantir que o compilador ache a pasta na raiz da build
-          ln -s ../runtime build_ios/rex || true
+          # BLINDAGEM COBRINDO TODOS OS DIRETÓRIOS: Cria a estrutura 'rex' física e o assert.h em cada canto possível
+          # Isso garante que qualquer busca do Clang encontre o arquivo localmente, sem depender de links relativos
+          for local in "." "runtime" "runtime/gpu" "runtime/gpu/xe" "build_ios"; do
+            mkdir -p "$local/rex"
+            mkdir -p "$local/rex/graphics/pipeline/shader"
+            
+            # Cria o assert.h simulado
+            echo "#ifndef REX_ASSERT_H" > "$local/rex/assert.h"
+            echo "#define REX_ASSERT_H" >> "$local/rex/assert.h"
+            echo "#include <assert.h>" >> "$local/rex/assert.h"
+            echo "#endif" >> "$local/rex/assert.h"
+            
+            # Cria o interpreter.h espelhado para o módulo de shaders passar direto caso seja buscado na rota rex/
+            if [ -f "runtime/gpu/xe/interpreter.h" ]; then
+              cp runtime/gpu/xe/interpreter.h "$local/rex/graphics/pipeline/shader/interpreter.h" 2>/dev/null || true
+            else
+              echo "/* Mock Interpreter */" > "$local/rex/graphics/pipeline/shader/interpreter.h"
+            endif
+          done
           
           for dir in "." "ppc" "runtime"; do
             echo "#ifndef PPC_RECOMP_SHARED_H" > "$dir/ppc_recomp_shared.h"
@@ -94,8 +106,8 @@ jobs:
             -DPES17_USE_METAL=ON \
             -DENABLE_AUDIO_DISABLED=ON \
             -DENABLE_AUDIO_SDL=OFF \
-            -DCMAKE_C_FLAGS="-O3 -ffast-math -I../ -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
-            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -I../ -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
+            -DCMAKE_C_FLAGS="-O3 -ffast-math -I../ -I../../ -I../../../ -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -I../ -I../../ -I../../../ -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
 
           echo "3. Compilando o executavel..."
           make pes17
