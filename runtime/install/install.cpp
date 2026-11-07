@@ -1,5 +1,4 @@
 #include "install.h"
-#include "../kernel.h" // CORREÇÃO DE ROTA: Aponta para a pasta pai onde o kernel.h original reside
 #include <stdint.h>
 #include <string>
 #include <filesystem>
@@ -17,31 +16,31 @@ namespace install {
     // Função mestre que prepara o leitor de mídias na largada do aplicativo
     __attribute__((visibility("default"))) void Initialise() {
         try {
-            // Captura a rota do Sandbox público ("pes") gerado dinamicamente pelo kernel.mm
-            std::filesystem::path raizPastaPes = kernel::GameRoot();
+            // Busca o caminho de documentos compartilhados oficial do Sandbox do iOS de forma direta via C++ filesystem
+            // Isso elimina a dependência do kernel.h e resolve o caminho em qualquer lugar do iPhone
+            std::filesystem::path rotaHome = std::filesystem::current_path();
+            std::filesystem::path raizPastaPes = std::filesystem::path(getenv("HOME") ? getenv("HOME") : ".") / "Documents/pes";
             
-            if (!raizPastaPes.empty()) {
-                std::string caminhoRaizStr = raizPastaPes.string();
-                
-                // LIMPA OS ACESSOS ANTIGOS DO ANDROID
-                // Força o motor a tratar a própria pasta raiz "pes" como o centro de mídias (./)
-                VFS_ClearMounts();
-                
-                // Mapeia os caminhos lógicos do Xbox 360 diretamente para a pasta "pes" pública do iPhone
-                VFS_RegisterMount("game:/", caminhoRaizStr.c_str());
-                VFS_RegisterMount("d:/", caminhoRaizStr.c_str());
-                VFS_RegisterMount("cache:/", caminhoRaizStr.c_str());
-                
-                // Grava uma flag de sucesso no log confirmando o redirecionamento dos arquivos soltos
-                std::string caminhoLogVFS = caminhoRaizStr + "/log_vfs_ios.txt";
-                std::ofstream arquivoLog(caminhoLogVFS);
-                if (arquivoLog.is_open()) {
-                    arquivoLog << "==================================================\n";
-                    arquivoLog << "VFS REDIRECIONADO: Sucesso no mapeamento de disco!\n";
-                    arquivoLog << "==================================================\n\n";
-                    arquivoLog << "Rota activa para leitura de arquivos soltos: " << caminhoRaizStr << "\n";
-                    arquivoLog.close();
-                }
+            std::string caminhoRaizStr = raizPastaPes.string();
+            
+            // LIMPA OS ACESSOS ANTIGOS DO ANDROID
+            // Força o motor a tratar a própria pasta raiz "pes" como o centro de mídias (./)
+            VFS_ClearMounts();
+            
+            // Mapeia os caminhos lógicos do Xbox 360 diretamente para a pasta "pes" pública do iPhone
+            VFS_RegisterMount("game:/", caminhoRaizStr.c_str());
+            VFS_RegisterMount("d:/", caminhoRaizStr.c_str());
+            VFS_RegisterMount("cache:/", caminhoRaizStr.c_str());
+            
+            // Grava uma flag de sucesso no log confirmando o redirecionamento dos arquivos soltos
+            std::string caminhoLogVFS = caminhoRaizStr + "/log_vfs_ios.txt";
+            std::ofstream arquivoLog(caminhoLogVFS);
+            if (arquivoLog.is_open()) {
+                arquivoLog << "==================================================\n";
+                arquivoLog << "VFS REDIRECIONADO: Sucesso no mapeamento de disco!\n";
+                arquivoLog << "==================================================\n\n";
+                arquivoLog << "Rota activa para leitura de arquivos soltos: " << caminhoRaizStr << "\n";
+                arquivoLog.close();
             }
         } catch (...) {}
     }
