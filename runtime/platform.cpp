@@ -14,8 +14,6 @@
 #else
 #include <climits>
 #include <dlfcn.h>
-// bionic has no execinfo.h: Android's unwinder is reached another way, and
-// the backtrace below is written by hand there.
 #if !defined(__ANDROID__)
 #include <execinfo.h>
 #endif
@@ -166,7 +164,7 @@ void* platform::Symbol(void* library, const char* name)
 
 #else
 
-// Implementações POSIX genéricas para iOS/macOS/Linux
+// Implementacoes POSIX genericas para iOS/macOS/Linux
 namespace
 {
     pthread_t g_appleMainThread;
@@ -178,8 +176,7 @@ void platform::Initialise()
     g_appleMainThread = pthread_self();
     std::printf("[iOS platform] Inicializando ambiente Apple Core Foundation.\n");
     
-    // Configura uma variável de ambiente simulada para fixar o sandbox no diretório do app
-    char pathBuffer[PATH_MAX];
+    char pathBuffer[1024];
     uint32_t size = sizeof(pathBuffer);
     extern int _NSGetExecutablePath(char* buf, uint32_t* bufsize);
     if (_NSGetExecutablePath(pathBuffer, &size) == 0)
@@ -190,7 +187,7 @@ void platform::Initialise()
         {
             std::string bundleDir = exePath.substr(0, lastSlash);
             setenv("PES17_IOS_BUNDLE_DIR", bundleDir.c_str(), 1);
-            std::printf("[iOS platform] Diretório do Bundle mapeado: %s\n", bundleDir.c_str());
+            std::printf("[iOS platform] Diretorio do Bundle mapeado: %s\n", bundleDir.c_str());
         }
     }
 #endif
@@ -297,7 +294,7 @@ void platform::SetThreadAffinity(ThreadAffinityRole role)
 
     if (mask)
     {
-        cpu_set_set t;
+        cpu_set_t t;
         CPU_ZERO(&t);
         for (int i = 0; i < 32; ++i)
         {
@@ -313,3 +310,12 @@ void platform::PrintBacktrace(const char* why)
 #if !defined(__ANDROID__)
     void* frames[64];
     int n = backtrace(frames, 64);
+    std::fprintf(stderr, "\n[E] ---- %s (%d frames) ----\n", why, n);
+    backtrace_symbols_fd(frames, n, STDERR_FILENO);
+    std::fprintf(stderr, "[E] --------------------------------\n");
+    std::fflush(stderr);
+#endif
+}
+
+namespace
+{
