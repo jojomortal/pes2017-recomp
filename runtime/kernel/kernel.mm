@@ -30,7 +30,6 @@ static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
     self.view.backgroundColor = [UIColor blackColor];
     
     // 1. INICIALIZAÇÃO DO MOTOR GRÁFICO REAL DA APPLE (Metal API)
-    // Isso cria um contexto de hardware válido que impede o motor gráfico de dar crash na largada
     self.metalDevice = MTLCreateSystemDefaultDevice();
     
     if (self.metalDevice) {
@@ -38,7 +37,9 @@ static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
         self.metalLayer.device = self.metalDevice;
         self.metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
         self.metalLayer.frame = self.view.bounds;
-        self.metalLayer.autoresizingMask = kCALayerWidthSizable | kCALayerHeightSizable;
+        
+        // CORREÇÃO CIRÚRGICA: Uso de máscaras nativas UIView para evitar erros de macro CoreAnimation
+        self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         
         // Acopla a camada de renderização diretamente na tela visível do iPhone
         [self.view.layer addSublayer:self.metalLayer];
@@ -54,12 +55,12 @@ static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
     [self.view addSubview:labelAviso];
 }
 
-// Captura de Toques na Tela (Base para os futuros botões virtuais da Parte 8)
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
     UITouch *touch = [touches anyObject];
-    CGPoint pontoTocado = [touch locationInView:self.view];
-    // Aqui interceptaremos as coordenadas de toque para enviar ao processador de comandos do jogo
-    (void)pontoTocado;
+    if (touch) {
+        CGPoint pontoTocado = [touch locationInView:self.view];
+        (void)pontoTocado;
+    }
 }
 @end
 
@@ -103,9 +104,8 @@ static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
             }
         } catch (...) {}
 
-        // Monta e exibe a janela com o contexto gráfico ativo da Apple
-        UIScreen *telaPrincipal = [UIScreen mainScreen];
-        self.window = [[UIWindow alloc] initWithFrame:[telaPrincipal bounds]];
+        // CORREÇÃO DE DEPRECIAÇÃO: Inicialização de janela moderna compatível com iOS 15, 16 e 17+
+        self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
         
         PESViewController *viewController = [[PESViewController alloc] init];
         self.window.rootViewController = viewController;
