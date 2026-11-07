@@ -52,28 +52,30 @@ jobs:
             echo "#endif" >> "$dir/ppc_config.h"
           done
           
-          # BYPASS RADICAL: Desativa fisicamente os gatilhos de encerramento precoce (exit/abort) nos arquivos originais do motor
-          echo "Aplicando engenharia reversa agressiva nos arquivos fontes..."
+          # Remove travas de arquivos de mídia ausentes nos CMakeLists originais
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(FATAL_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
           find . -name "CMakeLists.txt" -exec sed -i '' 's/message(SEND_ERROR "pes\/default.xex is missing/message(WARNING "pes\/default.xex is missing/g' {} + || true
           
-          # Sobrescreve módulos problemáticos que disparam fechamentos em background antes da tela subir
-          find . -name "audio.cpp" -exec sh -c 'echo "extern \"C\" void audio_dummy() {}" > "{}"' \;
-          find . -name "crash.cpp" -exec sh -c 'echo "extern \"C\" void crash_dummy() {}" > "{}"' \;
-          echo 'void xma_dummy_anchor() {}' > runtime/apu/xma.cpp
+          # Sobrescreve os arquivos usando o bloco CAT limpo para evitar erros sintáticos de quebra de aspas do Mac
+          cat << 'EOF' > runtime/apu/audio.cpp
+          extern "C" { void audio_dummy() {} }
+          EOF
+
+          cat << 'EOF' > runtime/crash.cpp
+          extern "C" { void crash_dummy() {} }
+          EOF
+
+          cat << 'EOF' > runtime/gpu/d3d_hooks.cpp
+          extern "C" { void d3d_dummy() {} }
+          EOF
           
-          # Neutraliza saídas forçadas no processador de comandos e loops estáticos
-          find . -type f -name "command_processor.cpp" -exec sed -i '' 's/exit(/// exit(/g' {} + || true
-          find . -type f -name "command_processor.cpp" -exec sed -i '' 's/abort(/// abort(/g' {} + || true
-          find . -type f -name "window_trace.cpp" -exec sed -i '' 's/exit(/// exit(/g' {} + || true
+          echo 'void xma_dummy_anchor() {}' > runtime/apu/xma.cpp
           
           find . -type f -name "command_processor.cpp" -exec sed -i '' '1i\
           #define PPC_QueryTimeBase() 1\
           #define PPC_QueryTimebase() 1\
           #define PPC_querytimebase() 1\
           ' {} + || true
-          
-          find . -type f -name "d3d_hooks.cpp" -exec sh -c 'echo "extern \"C\" void d3d_dummy() {}" > "{}"' \;
 
           echo "2. Configurando o ambiente CMake limpo..."
           cd build_ios
@@ -97,7 +99,7 @@ jobs:
           
           cp -R build_ios/pes17.app Payload/
           
-          # Injeta 10 MB de dados randômicos puros para travar o ZIP e forçar o iOS a ler o container robusto
+          # Injeta os 10 MB de dados randômicos que travarão a compressão ZIP e encorparão o IPA final
           dd if=/dev/urandom of=Payload/pes17.app/pes17_massa_dados.bin bs=1024 count=10000
           
           zip -r pes2017_unsigned.ipa Payload
