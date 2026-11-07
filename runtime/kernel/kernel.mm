@@ -9,13 +9,12 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 
-// Variável estática global que guardará o caminho correto descoberto dinamicamente
+// Variáveis de controle de caminhos dinâmicos
 static std::filesystem::path g_CaminhoJogoValido;
 static bool g_ArquivosDoJogoEncontrados = false;
 
-// 1. Definição do Ciclo de Vida do Aplicativo Oficial da Apple (AppDelegate)
+// 1. Definição do Ciclo de Vida do Aplicativo Oficial da Apple (AppDelegate Moderno)
 @interface PESAppDelegate : UIResponder <UIApplicationDelegate>
-@property (strong, nonatomic) UIWindow *window;
 @end
 
 @implementation PESAppDelegate
@@ -32,13 +31,12 @@ static bool g_ArquivosDoJogoEncontrados = false;
             std::string caminhoArquivo = caminhoDocuments + "/log_inicializacao.txt";
             std::string executavelJogo = caminhoPastaPes + "/default.xex";
 
-            // FORÇA A CRIAÇÃO AUTOMÁTICA DA SUBPASTA CORRETA
+            // FORÇA A CRIAÇÃO AUTOMÁTICA DA SUBPASTA PÚBLICA DO JOGO NO DISCO DO IPHONE
             std::filesystem::create_directories(caminhoPastaPes);
             
             // Fixa o caminho global para a engine buscar os dados estritamente dentro da subpasta pes/
             g_CaminhoJogoValido = caminhoPastaPes;
 
-            // Verifica se o usuário já colocou o executável do jogo na pasta correta
             if (std::filesystem::exists(executavelJogo)) {
                 g_ArquivosDoJogoEncontrados = true;
             }
@@ -56,23 +54,6 @@ static bool g_ArquivosDoJogoEncontrados = false;
             }
         }
     } catch (...) {}
-
-    // Inicializa uma janela nativa básica
-    self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
-    UIViewController *viewController = [[UIViewController alloc] init];
-    viewController.view.backgroundColor = [UIColor blackColor];
-    
-    // Injeção de uma label de ajuda na tela caso o usuário abra o app sem os arquivos
-    UILabel *labelAviso = [[UILabel alloc] initWithFrame:CGRectMake(20, 100, self.window.bounds.size.width - 40, 200)];
-    labelAviso.text = @"PES 2017 Launcher\n\nPor favor, insira os arquivos convertidos do Xbox 360 estritamente dentro da pasta 'pes' usando o aplicativo 'Arquivos' do iPhone ou o iTunes no PC.";
-    labelAviso.textColor = [UIColor whiteColor];
-    labelAviso.textAlignment = NSTextAlignmentCenter;
-    labelAviso.numberOfLines = 0;
-    labelAviso.font = [UIFont systemFontOfSize:16 weight:UIFontWeightMedium];
-    [viewController.view addSubview:labelAviso];
-    
-    self.window.rootViewController = viewController;
-    [self.window makeKeyAndVisible];
 
     return YES;
 }
@@ -132,16 +113,17 @@ extern "C" {
     __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
 }
 
-// Ponto de entrada padrão limpo em escopo global
+// Ponto de entrada padrão em escopo global regulamentado
 __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
     @autoreleasepool {
-        // Inicializa a interface da Apple primeiro para disparar os privilégios de arquivos do iOS
+        // Inicializa o ecossistema móvel disparando as permissões de gravação de arquivos
         UIApplicationMain(argc, argv, nil, NSStringFromClass([PESAppDelegate class]));
         
-        // TRAVA DE SEGURANÇA: Se não encontrar o default.xex na pasta "pes", segura o app ativo na tela de aviso
+        // LOOP INFINITO DE SEGURANÇA: Se os arquivos do jogo não estiverem lá, prende o processo ativo na tela preta
+        // Isso dá tempo ao iOS de registrar as chaves do Info.plist e fazer a pasta brotar nativamente no iPhone
         if (!g_ArquivosDoJogoEncontrados) {
             extern void CFRunLoopRun(void);
-            CFRunLoopRun(); // Prende em loop infinito seguro impedindo o fechamento precoce
+            CFRunLoopRun();
         }
         
         return 0;
