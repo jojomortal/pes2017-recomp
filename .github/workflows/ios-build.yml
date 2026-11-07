@@ -48,7 +48,7 @@ jobs:
             echo "    PPCReg r11; PPCReg r12; PPCReg r13; PPCReg r14; PPCReg r15; PPCReg r16; PPCReg r17; PPCReg r18; PPCReg r19; PPCReg r20;" >> "$dir/ppc_recomp_shared.h"
             echo "    PPCReg r21; PPCReg r22; PPCReg r23; PPCReg r24; PPCReg r25; PPCReg r26; PPCReg r27; PPCReg r28; PPCReg r29; PPCReg r30;" >> "$dir/ppc_recomp_shared.h"
             echo "    PPCReg r31; PPCReg r32;" >> "$dir/ppc_recomp_shared.h"
-            echo "    PPCReg lr; PPCReg ctr; PPCReg xer; fpscr;" >> "$dir/ppc_recomp_shared.h"
+            echo "    PPCReg lr; PPCReg ctr; PPCReg xer; PPCReg fpscr;" >> "$dir/ppc_recomp_shared.h"
             echo "    uint32_t lr_gpr; uint32_t msr;" >> "$dir/ppc_recomp_shared.h"
             echo "};" >> "$dir/ppc_recomp_shared.h"
             echo "typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);" >> "$dir/ppc_recomp_shared.h"
@@ -71,7 +71,6 @@ jobs:
           extern "C" { void crash_dummy() {} }
           EOF
 
-          # CORREÇÃO CIRÚRGICA: Adicionado o tipo de retorno void exigido pelo Clang
           cat << 'EOF' > runtime/gpu/d3d_hooks.cpp
           extern "C" { void d3d_dummy() {} }
           EOF
