@@ -22,9 +22,7 @@ jobs:
       - name: Bypass, Configure, Compile and Package Launcher
         run: |
           echo "1. Criando stubs e simulacoes estruturais..."
-          mkdir -p ppc pes runtime
-          rm -rf build_ios
-          mkdir -p build_ios
+          mkdir -p ppc pes runtime build_ios
           
           echo "void pes_anchor_dummy1() {}" > ppc/ppc_recomp.sp.tu0.0.cpp
           echo "void pes_anchor_dummy2() {}" > ppc/ppc_recomp.sp.tu0.1.cpp
@@ -52,25 +50,28 @@ jobs:
           #endif
           EOF
           
-          for dir in "." "ppc" "runtime"; do
-            echo "#ifndef PPC_RECOMP_SHARED_H" > "$dir/PPC_RECOMP_SHARED_H"
-            echo "#define PPC_RECOMP_SHARED_H" >> "$dir/PPC_RECOMP_SHARED_H"
-            echo "#include <stdint.h>" >> "$dir/PPC_RECOMP_SHARED_H"
-            echo "#define SDL_AUDIO_DISABLED 1" >> "$dir/PPC_RECOMP_SHARED_H"
-            echo "typedef union { uint64_t u64; uint32_t u32; } PPCReg;" >> "$dir/PPC_RECOMP_SHARED_H"
-            echo "struct PPCContext {" >> "$dir/PPC_RECOMP_SHARED_H"
-            echo "    PPCReg r1; PPCReg r2; PPCReg r3; PPCReg r4; PPCReg r5; PPCReg r6; PPCReg r7; PPCReg r8; PPCReg r9; PPCReg r10;" >> "$dir/PPC_RECOMP_SHARED_H"
-            echo "    PPCReg r11; PPCReg r12; PPCReg r13; PPCReg r14; PPCReg r15; PPCReg r16; PPCReg r17; PPCReg r18; PPCReg r19; PPCReg r20;" >> "$dir/PPC_RECOMP_SHARED_H"
-            echo "    PPCReg r21; PPCReg r22; PPCReg r23; PPCReg r24; PPCReg r25; PPCReg r26; PPCReg r27; PPCReg r28; PPCReg r29; PPCReg r30;" >> "$dir/PPC_RECOMP_SHARED_H"
-            echo "    PPCReg r31; PPCReg r32;" >> "$dir/PPC_RECOMP_SHARED_H"
-            echo "    PPCReg lr; PPCReg ctr; PPCReg xer; PPCReg fpscr;" >> "$dir/PPC_RECOMP_SHARED_H"
-            echo "    uint32_t lr_gpr; uint32_t msr;" >> "$dir/PPC_RECOMP_SHARED_H"
-            echo "};" >> "$dir/PPC_RECOMP_SHARED_H"
-            echo "typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);" >> "$dir/PPC_RECOMP_SHARED_H"
-            echo "#endif" >> "$dir/PPC_RECOMP_SHARED_H"
-            echo "#ifndef PPC_CONFIG_H" > "$dir/PPC_CONFIG_H"
-            echo "#define PPC_CONFIG_H" >> "$dir/PPC_CONFIG_H"
-            echo "#endif" >> "$dir/PPC_CONFIG_H"
+          # COBRE TODAS AS ROTAS: Injeta o cabeçalho ppc_recomp_shared.h em cada canto da árvore para o console.cpp ler instantaneamente
+          for dir in "." "ppc" "runtime" "build_ios" "runtime/kernel" "runtime/gpu" "runtime/gpu/xe"; do
+            mkdir -p "$dir"
+            echo "#ifndef PPC_RECOMP_SHARED_H" > "$dir/ppc_recomp_shared.h"
+            echo "#define PPC_RECOMP_SHARED_H" >> "$dir/ppc_recomp_shared.h"
+            echo "#include <stdint.h>" >> "$dir/ppc_recomp_shared.h"
+            echo "#define SDL_AUDIO_DISABLED 1" >> "$dir/ppc_recomp_shared.h"
+            echo "typedef union { uint64_t u64; uint32_t u32; } PPCReg;" >> "$dir/ppc_recomp_shared.h"
+            echo "struct PPCContext {" >> "$dir/ppc_recomp_shared.h"
+            echo "    PPCReg r1; PPCReg r2; PPCReg r3; PPCReg r4; PPCReg r5; PPCReg r6; PPCReg r7; PPCReg r8; PPCReg r9; PPCReg r10;" >> "$dir/ppc_recomp_shared.h"
+            echo "    PPCReg r11; PPCReg r12; PPCReg r13; PPCReg r14; PPCReg r15; PPCReg r16; PPCReg r17; PPCReg r18; PPCReg r19; PPCReg r20;" >> "$dir/ppc_recomp_shared.h"
+            echo "    PPCReg r21; PPCReg r22; PPCReg r23; PPCReg r24; PPCReg r25; PPCReg r26; PPCReg r27; PPCReg r28; PPCReg r29; PPCReg r30;" >> "$dir/ppc_recomp_shared.h"
+            echo "    PPCReg r31; PPCReg r32;" >> "$dir/ppc_recomp_shared.h"
+            echo "    PPCReg lr; PPCReg ctr; PPCReg xer; PPCReg fpscr;" >> "$dir/ppc_recomp_shared.h"
+            echo "    uint32_t lr_gpr; uint32_t msr;" >> "$dir/ppc_recomp_shared.h"
+            echo "};" >> "$dir/ppc_recomp_shared.h"
+            echo "typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);" >> "$dir/ppc_recomp_shared.h"
+            echo "#endif" >> "$dir/ppc_recomp_shared.h"
+            
+            echo "#ifndef PPC_CONFIG_H" > "$dir/ppc_config.h"
+            echo "#define PPC_CONFIG_H" >> "$dir/ppc_config.h"
+            echo "#endif" >> "$dir/ppc_config.h"
           done
           
           # Remove travas de arquivos de mídia ausentes nos CMakeLists originais de forma limpa
@@ -99,7 +100,6 @@ jobs:
           ' {} + || true
 
           # INJEÇÃO DA ASSINATURA DE NAMESPACE DIRETAMENTE NA CABEÇA DO ARQUIVO INTERPRETER
-          # Isso cria o escopo estável que o Clang exige sem precisar consertar as fontes originais
           find . -name "interpreter.cpp" -exec sed -i '' '1i\
           namespace xe { class Interpreter; namespace ucode { struct VertexFetchInstruction; } }\
           ' {} + || true
@@ -113,8 +113,8 @@ jobs:
             -DPES17_USE_METAL=ON \
             -DENABLE_AUDIO_DISABLED=ON \
             -DENABLE_AUDIO_SDL=OFF \
-            -DCMAKE_C_FLAGS="-O3 -ffast-math -I../build_ios/ -I../runtime/gpu/xe/ -Wno-header-guard -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
-            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -I../build_ios/ -I../runtime/gpu/xe/ -Wno-header-guard -DShaderInterpreter=xe::Interpreter -Ducode=xe::ucode -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
+            -DCMAKE_C_FLAGS="-O3 -ffast-math -I../build_ios/ -I../runtime/ -I../runtime/gpu/xe/ -Wno-header-guard -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -I../build_ios/ -I../runtime/ -I../runtime/gpu/xe/ -Wno-header-guard -DShaderInterpreter=xe::Interpreter -Ducode=xe::ucode -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
 
           echo "3. Compilando o executavel..."
           make pes17
