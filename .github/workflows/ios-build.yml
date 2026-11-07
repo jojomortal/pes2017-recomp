@@ -32,7 +32,6 @@ jobs:
           dd if=/dev/zero of=pes/default.xex bs=1024 count=500
           
           # ESPELHAMENTO DE PASTAS SEGURO: Cria links simbólicos estruturais para resolver as buscas <rex/...>
-          # Sem precisar mexer em nenhuma linha ou propriedade do CMakeLists.txt original
           ln -s runtime rex
           mkdir -p runtime/gpu/xe/shim/rex
           echo "#include <assert.h>" > runtime/gpu/xe/shim/rex/assert.h
@@ -114,7 +113,7 @@ jobs:
           zip -r pes2017_unsigned.ipa Payload
 
       - name: Upload IPA Artifact
-        uses: actions/upload-artifact=v4
+        uses: actions/upload-artifact@v4
         with:
           name: pes2017-ios-ipa
           path: pes2017_unsigned.ipa
