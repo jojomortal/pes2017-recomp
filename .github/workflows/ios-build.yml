@@ -31,14 +31,12 @@ jobs:
           echo "/* Mock Mapping */" > ppc/ppc_func_mapping.cpp
           dd if=/dev/zero of=pes/default.xex bs=1024 count=500
           
-          # BLINDAGEM DE SÍMBOLOS DOS SHADERS: Cria a pasta rex e o assert.h em todas as rotas de inclusão possíveis do projeto
-          for pasta_shim in "runtime" "runtime/gpu/xe" "runtime/gpu/xe/shim" "ppc" "."; do
-            mkdir -p "$pasta_shim/rex"
-            echo "#ifndef REX_ASSERT_H" > "$pasta_shim/rex/assert.h"
-            echo "#define REX_ASSERT_H" >> "$pasta_shim/rex/assert.h"
-            echo "#include <assert.h>" >> "$pasta_shim/rex/assert.h"
-            echo "#endif" >> "$pasta_shim/rex/assert.h"
-          done
+          # BLINDAGEM SUPREMA DE CAMINHOS: Cria um link simbólico (atalho) chamado 'rex' apontando para 'runtime'
+          # Isso faz com que qualquer chamada como <rex/graphics/...> ou <rex/assert.h> seja resolvida instantaneamente
+          # usando os cabeçalhos originais e válidos que já existem dentro do seu próprio repositório!
+          ln -s runtime rex
+          mkdir -p runtime/gpu/xe/shim/rex
+          echo "#include <assert.h>" > runtime/gpu/xe/shim/rex/assert.h
           
           for dir in "." "ppc" "runtime"; do
             echo "#ifndef PPC_RECOMP_SHARED_H" > "$dir/ppc_recomp_shared.h"
@@ -85,6 +83,9 @@ jobs:
           #define PPC_QueryTimebase() 1\
           #define PPC_querytimebase() 1\
           ' {} + || true
+
+          # Força o CMake a incluir a pasta raiz como rota de busca global do sistema de cabeçalhos
+          find . -name "CMakeLists.txt" -exec sed -i '' 's/include_directories(/include_directories("\${CMAKE_SOURCE_DIR}" /g' {} + || true
 
           echo "2. Configurando o ambiente CMake limpo..."
           cd build_ios
