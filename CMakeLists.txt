@@ -42,10 +42,16 @@ file(GLOB RUNTIME_SOURCES CONFIGURE_DEPENDS
      "${CMAKE_SOURCE_DIR}/runtime/gpu/xe/*.cpp")
 
 if(APPLE)
-    include_directories("${CMAKE_PREFIX_PATH}/include" "${CMAKE_BINARY_DIR}/include" "${CMAKE_SOURCE_DIR}/third_party/include" "/usr/local/include")
+    include_directories(
+        "${CMAKE_PREFIX_PATH}/include" 
+        "${CMAKE_BINARY_DIR}/include" 
+        "${CMAKE_SOURCE_DIR}/third_party/include" 
+        "/usr/local/include"
+        "${CMAKE_SOURCE_DIR}/runtime/gpu/xe"
+    )
 endif()
 
-# Inicialização do App Bundle focando no kernel.mm como ponto centralizado
+# Inicialização mestre focando no kernel.mm como ponto centralizado do App Bundle
 add_executable(pes17 MACOSX_BUNDLE ${RUNTIME_SOURCES} "${CMAKE_SOURCE_DIR}/runtime/kernel/kernel.mm" "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp")
 
 target_link_libraries(pes17 PRIVATE 
@@ -62,8 +68,6 @@ target_link_libraries(pes17 PRIVATE
 
 if(APPLE)
     target_link_options(pes17 PRIVATE "-Wl,-undefined,dynamic_lookup")
-    
-    # INDICAÇÃO DE RECURSOS E MANIFESTO COMPATÍVEL COM O SPRINGBOARD DO IOS MÓVEL
     set_target_properties(pes17 PROPERTIES
         MACOSX_BUNDLE_BUNDLE_IDENTIFIER "com.community.pes2017recomp"
         MACOSX_BUNDLE_BUNDLE_NAME "PES17-Launcher"
