@@ -48,7 +48,7 @@ jobs:
             echo "    PPCReg r31; PPCReg r32;" >> "$dir/ppc_recomp_shared.h"
             echo "    PPCReg lr; PPCReg ctr; PPCReg xer; PPCReg fpscr;" >> "$dir/ppc_recomp_shared.h"
             echo "    uint32_t lr_gpr; uint32_t msr;" >> "$dir/ppc_recomp_shared.h"
-          echo "};" >> "$dir/ppc_recomp_shared.h"
+            echo "};" >> "$dir/ppc_recomp_shared.h"
             echo "typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);" >> "$dir/ppc_recomp_shared.h"
             echo "#endif" >> "$dir/ppc_recomp_shared.h"
 
@@ -72,31 +72,8 @@ jobs:
           ' {} + || true
           find . -type f -name "d3d_hooks.cpp" -exec sh -c 'echo "/* Ignorado */" > "{}"' \;
 
-          echo "2. Configurando o ambiente CMake limpo..."
-          cd build_ios
-          cmake .. -G "Unix Makefiles" \
-            -DCMAKE_SYSTEM_NAME=iOS \
-            -DCMAKE_OSX_SYSROOT=iphoneos \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DPES17_USE_METAL=ON \
-            -DENABLE_AUDIO_DISABLED=ON \
-            -DENABLE_AUDIO_SDL=OFF \
-            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
-            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
-
-          echo "3. Compilando o executavel..."
-          make pes17
-
-          echo "4. Montando a estrutura Payload do IPA NATIVAMENTE..."
-          cd ..
-          rm -rf Payload
-          mkdir -p Payload
-          
-          # Copia recursivamente a pasta oficial do App Bundle (.app) gerada pelo CMake
-          cp -R build_ios/pes17.app Payload/
-          
-          # Criação do Info.plist limpo e oficial com as permissões estruturadas dentro do Bundle copiado
-          cat << 'EOF' > Payload/pes17.app/Info.plist
+          # Cria dinamicamente um arquivo Info.plist perfeito para o CMake injetar nativamente nas propriedades do App Bundle
+          cat << 'EOF' > runtime/Info.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://apple.com">
           <plist version="1.0">
@@ -121,7 +98,33 @@ jobs:
           </plist>
           EOF
 
-          # Compacta a estrutura finalizada
+          # Ajusta o CMakeLists para embutir o Info.plist de forma nativa e regulamentada nas propriedades da Apple
+          find . -name "CMakeLists.txt" -exec sed -i '' 's/target_include_directories(pes17 PRIVATE "\${CMAKE_SOURCE_DIR}\/runtime")/target_include_directories(pes17 PRIVATE "\${CMAKE_SOURCE_DIR}\/runtime")\n    set_target_properties(pes17 PROPERTIES MACOSX_BUNDLE_INFO_PLIST "\${CMAKE_SOURCE_DIR}\/runtime\/Info.plist")/g' {} + || true
+
+          echo "2. Configurando o ambiente CMake limpo..."
+          cd build_ios
+          cmake .. -G "Unix Makefiles" \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_SYSROOT=iphoneos \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DPES17_USE_METAL=ON \
+            -DENABLE_AUDIO_DISABLED=ON \
+            -DENABLE_AUDIO_SDL=OFF \
+            -DCMAKE_C_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
+
+          echo "3. Compilando o executavel..."
+          make pes17
+
+          echo "4. Montando a estrutura Payload do IPA NATIVAMENTE..."
+          cd ..
+          rm -rf Payload
+          mkdir -p Payload
+          
+          # Copia a pasta completa oficial .app gerada nativamente com o manifesto embutido
+          cp -R build_ios/pes17.app Payload/
+
+          # Fecha o arquivo .ipa legítimo da Apple
           zip -r pes2017_unsigned.ipa Payload
 
       - name: Upload IPA Artifact
