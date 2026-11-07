@@ -11,7 +11,7 @@
 #import <QuartzCore/CAMetalLayer.h>
 #import <Metal/Metal.h>
 
-// Inclusão de cabeçalhos POSIX do sistema para comandos de baixo nível
+// Inclusão de cabeçalhos POSIX do sistema para comandos brutas de baixo nível
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -66,11 +66,59 @@ static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     @autoreleasepool {
+        try {
+            // Busca de forma oficial o caminho absoluto da pasta Documents pública do Sandbox do iOS
+            NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+            NSString *documentsDirectory = [paths firstObject];
+            
+            if (documentsDirectory) {
+                std::string caminhoDocuments = [documentsDirectory UTF8String];
+                std::string caminhoPastaPes = caminhoDocuments + "/pes";
+                std::string caminhoArquivoLog = caminhoDocuments + "/log_inicializacao.txt";
+                std::string executavelJogo = caminhoPastaPes + "/default.xex";
+
+                // FORÇA BRUTA: Cria a pasta chamando o comando POSIX de baixo nível antes de iniciar a engine
+                mkdir(caminhoPastaPes.c_str(), 0777);
+                
+                // Grava o arquivo de log explicativo na raiz do Documents usando fstream cru
+                std::ofstream arquivo(caminhoArquivoLog);
+                if (arquivo.is_open()) {
+                    arquivo << "==================================================\n";
+                    arquivo << "PES 2017 Launcher Iniciado com Sucesso no iOS!\n";
+                    arquivo << "==================================================\n\n";
+                    arquivo << "Status: Pasta 'pes' criada automaticamente por baixo nivel.\n";
+                    arquivo.close();
+                }
+                
+                g_CaminhoJogoValido = caminhoPastaPes;
+
+                // Checa de forma física e direta se o jogo foi injetado pelo usuário
+                if (std::filesystem::exists(executavelJogo)) {
+                    g_ArquivosDoJogoEncontrados = true;
+                }
+            }
+            
+            if (!g_MemoriaVirtualConcedida) {
+                g_MemoriaVirtualConcedida = (uint8_t*)malloc(g_TamanhoMemoriaXbox);
+                if (g_MemoriaVirtualConcedida) {
+                    memset(g_MemoriaVirtualConcedida, 0, g_TamanhoMemoriaXbox);
+                }
+            }
+        } catch (...) {}
+
         // Monta e exibe a janela com o contexto gráfico ativo da Apple
         self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
         PESViewController *viewController = [[PESViewController alloc] init];
         self.window.rootViewController = viewController;
         [self.window makeKeyAndVisible];
+
+        // TRAVA DE SEGURANÇA SUPREMA NO LUGAR CERTO: Se o jogo não estiver lá, congela a execução aqui
+        // Isso impede que as threads de mídia ou o motor deem exit(0), segurando a tela preta e a pasta ativas
+        if (!g_ArquivosDoJogoEncontrados) {
+            while (true) {
+                [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1.0]];
+            }
+        }
     }
     return YES;
 }
@@ -140,59 +188,9 @@ extern "C" {
     __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
 }
 
-// 4. PONTO DE ENTRADA SUPREMO COM BYPASS DE BAIXO NÍVEL POSIX (FORÇA BRUTA)
+// 4. Ponto de Entrada Oficial Regulamentado da Apple
 __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
     @autoreleasepool {
-        // ETAPA DE FORÇA BRUTA: Injeta comandos POSIX direto no Kernel do iOS antes de carregar qualquer módulo
-        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-        NSString *documentsDirectory = [paths firstObject];
-        
-        if (documentsDirectory) {
-            std::string caminhoDocuments = [documentsDirectory UTF8String];
-            std::string caminhoPastaPes = caminhoDocuments + "/pes";
-            std::string caminhoArquivoLog = caminhoDocuments + "/log_inicializacao.txt";
-            
-            // Cria a pasta chamando o comando c-string POSIX puro de baixo nível (ignora travas internas)
-            mkdir(caminhoPastaPes.c_str(), 0777);
-            
-            // Grava o TXT usando o fstream cru logo na largada do hardware
-            std::ofstream arquivo(caminhoArquivoLog);
-            if (arquivo.is_open()) {
-                arquivo << "FORCA BRUTA: PES 2017 Inicializado com Sucesso!\n";
-                arquivo.close();
-            }
-            
-            g_CaminhoJogoValido = caminhoPastaPes;
-            std::string executavelJogo = caminhoPastaPes + "/default.xex";
-            if (std::filesystem::exists(executavelJogo)) {
-                g_ArquivosDoJogoEncontrados = true;
-            }
-        }
-        
-        // Aloca os 512MB de RAM do Xbox diretamente na memória física
-        if (!g_MemoriaVirtualConcedida) {
-            g_MemoriaVirtualConcedida = (uint8_t*)malloc(g_TamanhoMemoriaXbox);
-            if (g_MemoriaVirtualConcedida) {
-                memset(g_MemoriaVirtualConcedida, 0, g_TamanhoMemoriaXbox);
-            }
-        }
-
-        // Se o executável principal não estiver na pasta correta, entra em loop infinito estável POSIX imediatamente
-        // Isso impede que qualquer outra thread ou subrotina dê exit(0) ou cause crash precoce
-        if (!g_ArquivosDoJogoEncontrados) {
-            // Inicializa a UI básica para manter o container visível e aberto de prontidão no iPhone
-            dispatch_async(dispatch_get_main_queue(), ^{
-                UIApplicationMain(argc, argv, @"UIApplication", NSStringFromClass([PESAppDelegate class]));
-            });
-            
-            // Prende a thread principal num ciclo infinito de baixo nível do processador (Consolida a exibição automática)
-            while (true) {
-                sleep(1); 
-            }
-            return 0;
-        }
-
-        // Se os arquivos existirem, libera a execução normal para a inicialização do motor gráfico
         return UIApplicationMain(argc, argv, @"UIApplication", NSStringFromClass([PESAppDelegate class]));
     }
 }
