@@ -13,8 +13,9 @@
 static std::filesystem::path g_CaminhoJogoValido;
 static bool g_ArquivosDoJogoEncontrados = false;
 
-// 1. Definição do Ciclo de Vida do Aplicativo Oficial da Apple (AppDelegate Moderno)
+// 1. Definição do Ciclo de Vida do Aplicativo Oficial da Apple (AppDelegate Moderno e Válido)
 @interface PESAppDelegate : UIResponder <UIApplicationDelegate>
+@property (strong, nonatomic) UIWindow *window;
 @end
 
 @implementation PESAppDelegate
@@ -54,6 +55,16 @@ static bool g_ArquivosDoJogoEncontrados = false;
             }
         }
     } catch (...) {}
+
+    // CRIAÇÃO DA INTERFACE MODERNA OBRIGATÓRIA PARA VALIDAR O BUNDLE NO IOS
+    UIScreen *telaPrincipal = [UIScreen mainScreen];
+    self.window = [[UIWindow alloc] initWithFrame:[telaPrincipal bounds]];
+    
+    UIViewController *viewControllerPrincipal = [[UIViewController alloc] init];
+    viewControllerPrincipal.view.backgroundColor = [UIColor blackColor]; // Mantém a tela preta de prontidão
+    
+    self.window.rootViewController = viewControllerPrincipal;
+    [self.window makeKeyAndVisible];
 
     return YES;
 }
