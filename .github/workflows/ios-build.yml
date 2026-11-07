@@ -22,7 +22,7 @@ jobs:
       - name: Bypass, Configure, Compile and Package Launcher
         run: |
           echo "1. Criando stubs e simulacoes estruturais..."
-          mkdir -p ppc pes
+          mkdir -p ppc pes runtime
           rm -rf build_ios
           mkdir -p build_ios
           
@@ -92,7 +92,7 @@ jobs:
           rm -rf Payload
           mkdir -p Payload/pes17.app
           
-          # Força a busca e cópia do binário real compilado pelo Makefile para dentro do pacote final
+          # Copia de forma garantida o binário real compilado pelo Makefile
           if [ -f "build_ios/pes17" ]; then
             cp build_ios/pes17 Payload/pes17.app/pes17
           else
@@ -100,28 +100,33 @@ jobs:
           fi
           chmod +x Payload/pes17.app/pes17
           
-          # Se o CMake gerou um Info.plist nativo na pasta do App Bundle, trazemos ele, caso contrário estruturamos o manifesto
-          if [ -f "build_ios/pes17.app/Info.plist" ]; then
-            cp build_ios/pes17.app/Info.plist Payload/pes17.app/Info.plist
-          elif find build_ios -name "Info.plist" -type f -exec cp {} Payload/pes17.app/Info.plist \; ; then
-            echo "Info.plist copiado do build"
-          else
-            echo '<?xml version="1.0" encoding="UTF-8"?>' > Payload/pes17.app/Info.plist
-            echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://apple.com">' >> Payload/pes17.app/Info.plist
-            echo '<plist version="1.0"><dict>' >> Payload/pes17.app/Info.plist
-            echo '<key>CFBundleExecutable</key><string>pes17</string>' >> Payload/pes17.app/Info.plist
-            echo '<key>CFBundleIdentifier</key><string>com.community.pes2017recomp</string>' >> Payload/pes17.app/Info.plist
-            echo '<key>CFBundleName</key><string>PES17-Launcher</string>' >> Payload/pes17.app/Info.plist
-            echo '<key>CFBundleVersion</key><string>1.0</string>' >> Payload/pes17.app/Info.plist
-            echo '<key>CFBundleShortVersionString</key><string>1.0</string>' >> Payload/pes17.app/Info.plist
-            echo '<key>MinimumOSVersion</key><string>14.0</string>' >> Payload/pes17.app/Info.plist
-            echo '</dict></plist>' >> Payload/pes17.app/Info.plist
-          fi
-          
-          # Injeta de forma garantida as permissões cruciais de compartilhamento de arquivos no Info.plist final
-          find Payload -name "Info.plist" -type f -exec sh -c 'sed -i "" "/<\/dict>/i\\\\\\\n<key>UIFileSharingEnabled<\/key><true\/>\\\n<key>LSSupportsOpeningDocumentsInPlace<\/key><true\/>" "{}"' \;
+          # Criação do Info.plist limpo e oficial com as permissões estruturadas nativamente (Sem usar sed)
+          cat << 'EOF' > Payload/pes17.app/Info.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://apple.com">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleExecutable</key>
+              <string>pes17</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.community.pes2017recomp</string>
+              <key>CFBundleName</key>
+              <string>PES17-Launcher</string>
+              <key>CFBundleVersion</key>
+              <string>1.0</string>
+              <key>CFBundleShortVersionString</key>
+              <string>1.0</string>
+              <key>MinimumOSVersion</key>
+              <string>14.0</string>
+              <key>UIFileSharingEnabled</key>
+              <true/>
+              <key>LSSupportsOpeningDocumentsInPlace</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
 
-          # Compacta a estrutura no formato correto exigido pela Apple
+          # Compacta a estrutura finalizada
           zip -r pes2017_unsigned.ipa Payload
 
       - name: Upload IPA Artifact
