@@ -72,35 +72,6 @@ jobs:
           ' {} + || true
           find . -type f -name "d3d_hooks.cpp" -exec sh -c 'echo "/* Ignorado */" > "{}"' \;
 
-          # Cria dinamicamente um arquivo Info.plist perfeito para o CMake injetar nativamente nas propriedades do App Bundle
-          cat << 'EOF' > runtime/Info.plist
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://apple.com">
-          <plist version="1.0">
-          <dict>
-              <key>CFBundleExecutable</key>
-              <string>pes17</string>
-              <key>CFBundleIdentifier</key>
-              <string>com.community.pes2017recomp</string>
-              <key>CFBundleName</key>
-              <string>PES17-Launcher</string>
-              <key>CFBundleVersion</key>
-              <string>1.0</string>
-              <key>CFBundleShortVersionString</key>
-              <string>1.0</string>
-              <key>MinimumOSVersion</key>
-              <string>14.0</string>
-              <key>UIFileSharingEnabled</key>
-              <true/>
-              <key>LSSupportsOpeningDocumentsInPlace</key>
-              <true/>
-          </dict>
-          </plist>
-          EOF
-
-          # Ajusta o CMakeLists para embutir o Info.plist de forma nativa e regulamentada nas propriedades da Apple
-          find . -name "CMakeLists.txt" -exec sed -i '' 's/target_include_directories(pes17 PRIVATE "\${CMAKE_SOURCE_DIR}\/runtime")/target_include_directories(pes17 PRIVATE "\${CMAKE_SOURCE_DIR}\/runtime")\n    set_target_properties(pes17 PROPERTIES MACOSX_BUNDLE_INFO_PLIST "\${CMAKE_SOURCE_DIR}\/runtime\/Info.plist")/g' {} + || true
-
           echo "2. Configurando o ambiente CMake limpo..."
           cd build_ios
           cmake .. -G "Unix Makefiles" \
@@ -121,7 +92,7 @@ jobs:
           rm -rf Payload
           mkdir -p Payload
           
-          # Copia a pasta completa oficial .app gerada nativamente com o manifesto embutido
+          # Copia a pasta oficial .app gerada nativamente pelo CMake com o Info.plist embutido perfeitamente de fábrica
           cp -R build_ios/pes17.app Payload/
 
           # Fecha o arquivo .ipa legítimo da Apple
