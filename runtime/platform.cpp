@@ -195,7 +195,7 @@ void platform::Initialise()
 
 #if defined(__APPLE__)
 uint32_t platform::ThreadId() { return uint32_t(pthread_mach_thread_np(pthread_self())); }
-bool platform::IsMainThread() { return pthread_equal(pthread_self(), g_appleMainThread) != 0; }
+bool platform::IsMainThread() { return pthread_main_np() != 0; }
 #else
 uint32_t platform::ThreadId() { return uint32_t(gettid()); }
 bool platform::IsMainThread() { return gettid() == getpid(); }
@@ -221,88 +221,12 @@ void platform::LowerThreadPriority()
 
 void platform::IdleThreadPriority()
 {
-#if defined(__APPLE__)
     LowerThreadPriority();
-#else
-    sched_param none{};
-    if (pthread_setschedparam(pthread_self(), SCHED_IDLE, &none) != 0) LowerThreadPriority();
-#endif
-}
-
-namespace
-{
-    struct CpuTopology
-    {
-        uint32_t primeMask = 0;
-        uint32_t perfMask = 0;
-        uint32_t workerMask = 0;
-        bool discovered = false;
-    };
-
-    CpuTopology DiscoverCpuTopology()
-    {
-        CpuTopology topo;
-        const long cpus = sysconf(_SC_NPROCESSORS_CONF);
-        if (cpus <= 1) return topo;
-
-        const int maxCpus = std::min(int(cpus), 32);
-        struct CoreFreq { int id; unsigned long freq; };
-        std::vector<CoreFreq> freqs;
-
-        for (int i = 0; i < maxCpus; ++i)
-        {
-            char path[128];
-            std::snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq", i);
-            FILE* f = std::fopen(path, "r");
-            unsigned long freq = 0;
-            if (f)
-            {
-                if (std::fscanf(f, "%lu", &freq) == 1) freqs.push_back({ i, freq });
-                std::fclose(f);
-            }
-        }
-
-        if (freqs.size() == size_t(maxCpus) && !freqs.empty())
-        {
-            std::sort(freqs.begin(), freqs.end(), [](const CoreFreq& a, const CoreFreq& b) {
-                return a.freq > b.freq;
-            });
-
-            unsigned long maxFreq = freqs[0].freq;
-            for (const auto& c : freqs)
-            {
-                if (c.freq >= maxFreq * 95 / 100)
-                    topo.primeMask |= (1u << c.id);
-            }
-        }
-        topo.discovered = true;
-        return topo;
-    }
 }
 
 void platform::SetThreadAffinity(ThreadAffinityRole role)
 {
-#if !defined(__APPLE__)
-    if (role == ThreadAffinityRole::Default) return;
-    static CpuTopology topo = DiscoverCpuTopology();
-    if (!topo.discovered) return;
-
-    uint32_t mask = 0;
-    if (role == ThreadAffinityRole::PrimeCore) mask = topo.primeMask;
-    else if (role == ThreadAffinityRole::PerformanceCore) mask = topo.perfMask;
-    else if (role == ThreadAffinityRole::WorkerCore) mask = topo.workerMask;
-
-    if (mask)
-    {
-        cpu_set_t t;
-        CPU_ZERO(&t);
-        for (int i = 0; i < 32; ++i)
-        {
-            if (mask & (1u << i)) CPU_SET(i, &t);
-        }
-        pthread_setaffinity_np(pthread_self(), sizeof(t), &t);
-    }
-#endif
+    // Mapeamento ignorado de forma limpa no iOS/macOS para evitar conflitos de afinidade
 }
 
 void platform::PrintBacktrace(const char* why)
@@ -319,3 +243,51 @@ void platform::PrintBacktrace(const char* why)
 
 namespace
 {
+    struct PosixThreadStart { void (*body)(void*); void* argument; const char* name; };
+
+    void* RunPosixThread(void* raw)
+    {
+        PosixThreadStart start = *static_cast<PosixThreadStart*>(raw);
+        delete static_cast<PosixThreadStart*>(raw);
+        if (start.name) platform::SetThreadName(start.name);
+        start.body(start.argument);
+        return nullptr;
+    }
+}
+
+bool platform::StartThread(void (*body)(void*), void* argument, size_t stackBytes, const char* name)
+{
+    auto* start = new PosixThreadStart{ body, argument, name };
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    if (stackBytes > 0) pthread_attr_setstacksize(&attr, stackBytes);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+    pthread_t thread;
+    int res = pthread_create(&thread, &attr, &RunPosixThread, start);
+    pthread_attr_destroy(&attr);
+
+    if (res != 0)
+    {
+        delete start;
+        return false;
+    }
+    return true;
+}
+
+void* platform::OpenLibrary(const char* path)
+{
+    return dlopen(path, RTLD_NOW | RTLD_LOCAL);
+}
+
+void* platform::LoadedLibrary(const char* name)
+{
+    return dlopen(nullptr, RTLD_NOW | RTLD_LOCAL);
+}
+
+void* platform::Symbol(void* library, const char* name)
+{
+    return dlsym(library, name);
+}
+
+#endif
