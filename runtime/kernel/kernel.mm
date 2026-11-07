@@ -9,9 +9,11 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 
-// Variáveis de controle de caminhos dinâmicos
+// Variáveis de controle de caminhos dinâmicos e alocação de memória do interpretador
 static std::filesystem::path g_CaminhoJogoValido;
 static bool g_ArquivosDoJogoEncontrados = false;
+static uint8_t* g_MemoriaVirtualConcedida = nullptr;
+static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024; // 512MB de RAM do Xbox 360
 
 // 1. Definição do Ciclo de Vida do Aplicativo Oficial da Apple (AppDelegate Moderno e Válido)
 @interface PESAppDelegate : UIResponder <UIApplicationDelegate>
@@ -52,6 +54,14 @@ static bool g_ArquivosDoJogoEncontrados = false;
                 // GRAVAÇÃO DE DISCO OFICIAL DA APPLE: Força o gatilho que ativa a exibição no app "Arquivos" do iPhone
                 [textoLog writeToFile:caminhoArquivoLog atomically:YES encoding:NSUTF8StringEncoding error:nil];
             }
+            
+            // Inicializa a RAM virtual do interpretador para permitir a leitura física dos arquivos binários
+            if (!g_MemoriaVirtualConcedida) {
+                g_MemoriaVirtualConcedida = (uint8_t*)malloc(g_TamanhoMemoriaXbox);
+                if (g_MemoriaVirtualConcedida) {
+                    memset(g_MemoriaVirtualConcedida, 0, g_TamanhoMemoriaXbox);
+                }
+            }
         } catch (...) {}
 
         // CRIAÇÃO DA INTERFACE MODERNA OBRIGATÓRIA PARA VALIDAR O BUNDLE NO IOS
@@ -73,9 +83,27 @@ namespace kernel {
     void Initialise() {}
     void Shutdown() {}
 
-    // Retorna dinamicamente o caminho da pasta pública correta exigida pela engine
+    // Retorna dinamicamente o caminho da pasta pública correta exigida pela engine para ler os .CPK
     __attribute__((visibility("default"))) const std::filesystem::path& GameRoot() {
         return g_CaminhoJogoValido;
+    }
+
+    // Tradução dinâmica de endereços de memória do Xbox para o processador do iPhone ler os arquivos binários
+    __attribute__((visibility("default"))) uint32_t ToPhysical(unsigned int address) { 
+        if (g_MemoriaVirtualConcedida && address < g_TamanhoMemoriaXbox) {
+            return (uint32_t)(uintptr_t)(g_MemoriaVirtualConcedida + address);
+        }
+        return 0; 
+    }
+    
+    __attribute__((visibility("default"))) uint32_t FromPhysical(unsigned int physicalAddress) { 
+        if (g_MemoriaVirtualConcedida && (uintptr_t)physicalAddress >= (uintptr_t)g_MemoriaVirtualConcedida) {
+            uintptr_t offset = (uintptr_t)physicalAddress - (uintptr_t)g_MemoriaVirtualConcedida;
+            if (offset < g_TamanhoMemoriaXbox) {
+                return (uint32_t)offset;
+            }
+        }
+        return 0; 
     }
 
     // Funções de Kernel com visibilidade aberta exigidas pelo motor gráfico e de mídia
@@ -88,8 +116,6 @@ namespace kernel {
     __attribute__((visibility("default"))) void CompleteOverlapped(unsigned int a, unsigned int b) {}
     __attribute__((visibility("default"))) void WindowTrace(char const* a, char const* b, unsigned int c, unsigned int d, char const* e) {}
     __attribute__((visibility("default"))) void TraceImport(char const* a, unsigned int b, const void* p) {}
-    __attribute__((visibility("default"))) uint32_t ToPhysical(unsigned int a) { return 0; }
-    __attribute__((visibility("default"))) uint32_t FromPhysical(unsigned int a) { return 0; }
 
     // Mocks consolidados como definições fortes para o Linker arm64 vincular de forma garantida
     __attribute__((visibility("default"))) uint32_t AllocateGuest(unsigned int a, unsigned int b) { return 0; }
