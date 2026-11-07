@@ -31,21 +31,24 @@ jobs:
           echo "/* Mock Mapping */" > ppc/ppc_func_mapping.cpp
           dd if=/dev/zero of=pes/default.xex bs=1024 count=500
           
-          # BLINDAGEM COBRINDO TODOS OS DIRETÓRIOS: Cria a estrutura 'rex' física e o assert.h em cada canto possível
-          # CORREÇÃO CIRÚRGICA: Trocado 'endif' por 'fi' em conformidade absoluta com o terminal Bash
+          # CRIAÇÃO EM LOTE DA ÁRVORE REX: Cria todas as subpastas exigidas pelo módulo de emulação de shaders
           for local in "." "runtime" "runtime/gpu" "runtime/gpu/xe" "build_ios"; do
             mkdir -p "$local/rex"
+            mkdir -p "$local/rex/graphics"
+            mkdir -p "$local/rex/graphics/pipeline"
             mkdir -p "$local/rex/graphics/pipeline/shader"
             
+            # Injeta o assert de segurança base
             echo "#ifndef REX_ASSERT_H" > "$local/rex/assert.h"
             echo "#define REX_ASSERT_H" >> "$local/rex/assert.h"
             echo "#include <assert.h>" >> "$local/rex/assert.h"
             echo "#endif" >> "$local/rex/assert.h"
             
-            if [ -f "runtime/gpu/xe/interpreter.h" ]; then
-              cp runtime/gpu/xe/interpreter.h "$local/rex/graphics/pipeline/shader/interpreter.h" 2>/dev/null || true
-            else
-              echo "/* Mock Interpreter */" > "$local/rex/graphics/pipeline/shader/interpreter.h"
+            # COPIA EM MASSA: Copia todos os cabeçalhos válidos da GPU Xe do projeto para dentro da árvore simulada rex
+            # Isso resolve instantaneamente o 'registers.h', 'interpreter.h' e qualquer outro que o Clang pedir!
+            if [ -d "runtime/gpu/xe" ]; then
+              cp runtime/gpu/xe/*.h "$local/rex/graphics/" 2>/dev/null || true
+              cp runtime/gpu/xe/*.h "$local/rex/graphics/pipeline/shader/" 2>/dev/null || true
             fi
           done
           
@@ -104,8 +107,8 @@ jobs:
             -DPES17_USE_METAL=ON \
             -DENABLE_AUDIO_DISABLED=ON \
             -DENABLE_AUDIO_SDL=OFF \
-            -DCMAKE_C_FLAGS="-O3 -ffast-math -I../ -I../../ -I../../../ -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
-            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -I../ -I../../ -I../../../ -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
+            -DCMAKE_C_FLAGS="-O3 -ffast-math -I../ -I../../ -I../../../ -I../runtime/gpu/xe/ -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -I../ -I../../ -I../../../ -I../runtime/gpu/xe/ -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
 
           echo "3. Compilando o executavel..."
           make pes17
