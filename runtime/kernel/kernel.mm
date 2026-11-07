@@ -124,19 +124,10 @@ extern "C" {
     __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
 }
 
-// Ponto de entrada padrão em escopo global regulamentado
+// Ponto de entrada padrão em escopo global regulamentado com privilégio total de Sandbox móvel
 __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
     @autoreleasepool {
-        // Inicializa o ecossistema móvel disparando as permissões de gravação de arquivos
-        UIApplicationMain(argc, argv, nil, NSStringFromClass([PESAppDelegate class]));
-        
-        // LOOP INFINITO DE SEGURANÇA: Se os arquivos do jogo não estiverem lá, prende o processo ativo na tela preta
-        // Isso dá tempo ao iOS de registrar as chaves do Info.plist e fazer a pasta brotar nativamente no iPhone
-        if (!g_ArquivosDoJogoEncontrados) {
-            extern void CFRunLoopRun(void);
-            CFRunLoopRun();
-        }
-        
-        return 0;
+        // Passando @"UIApplication" explicitamente para dar ao PESAppDelegate as credenciais de disco e interface móvel
+        return UIApplicationMain(argc, argv, @"UIApplication", NSStringFromClass([PESAppDelegate class]));
     }
 }
