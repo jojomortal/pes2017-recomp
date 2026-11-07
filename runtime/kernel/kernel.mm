@@ -21,50 +21,49 @@ static bool g_ArquivosDoJogoEncontrados = false;
 @implementation PESAppDelegate
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    try {
-        // Busca de forma oficial o caminho absoluto da pasta Documents pública do Sandbox do iOS
-        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-        NSString *documentsDirectory = [paths firstObject];
-        
-        if (documentsDirectory) {
-            std::string caminhoDocuments = [documentsDirectory UTF8String];
-            std::string caminhoPastaPes = caminhoDocuments + "/pes";
-            std::string caminhoArquivo = caminhoDocuments + "/log_inicializacao.txt";
-            std::string executavelJogo = caminhoPastaPes + "/default.xex";
-
-            // FORÇA A CRIAÇÃO AUTOMÁTICA DA SUBPASTA PÚBLICA DO JOGO NO DISCO DO IPHONE
-            std::filesystem::create_directories(caminhoPastaPes);
+    @autoreleasepool {
+        try {
+            // Busca de forma oficial o caminho absoluto da pasta Documents pública do Sandbox do iOS
+            NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+            NSString *documentsDirectory = [paths firstObject];
             
-            // Fixa o caminho global para a engine buscar os dados estritamente dentro da subpasta pes/
-            g_CaminhoJogoValido = caminhoPastaPes;
+            if (documentsDirectory) {
+                // Força a criação física da subpasta pública "pes" usando o gerenciador oficial da Apple
+                NSString *pastaPes = [documentsDirectory stringByAppendingPathComponent:@"pes"];
+                [[NSFileManager defaultManager] createDirectoryAtPath:pastaPes withIntermediateDirectories:YES attributes:nil error:nil];
+                
+                // Fixa o caminho global para a engine buscar os dados estritamente dentro da subpasta pes/
+                g_CaminhoJogoValido = std::filesystem::path([pastaPes UTF8String]);
 
-            if (std::filesystem::exists(executavelJogo)) {
-                g_ArquivosDoJogoEncontrados = true;
+                // Verifica se o usuário já colocou o executável do jogo na pasta correta
+                NSString *executavelJogo = [pastaPes stringByAppendingPathComponent:@"default.xex"];
+                if ([[NSFileManager defaultManager] fileExistsAtPath:executavelJogo]) {
+                    g_ArquivosDoJogoEncontrados = true;
+                }
+
+                // Estrutura o texto de log explicativo usando NSString nativa do iOS
+                NSString *caminhoArquivoLog = [documentsDirectory stringByAppendingPathComponent:@"log_inicializacao.txt"];
+                NSString *textoLog = @"==================================================\n"
+                                      "PES 2017 Launcher Iniciado com Sucesso no iOS!\n"
+                                      "==================================================\n\n"
+                                      "Status: Pasta 'pes' validada e criada automaticamente.\n"
+                                      "Instrucoes: Coloque o seu default.xex limpo (TU0) e as mídias (.cpk) estritamente dentro da pasta 'pes'.\n";
+
+                // GRAVAÇÃO DE DISCO OFICIAL DA APPLE: Força o gatilho que ativa a exibição no app "Arquivos" do iPhone
+                [textoLog writeToFile:caminhoArquivoLog atomically:YES encoding:NSUTF8StringEncoding error:nil];
             }
+        } catch (...) {}
 
-            // Grava o arquivo de log explicativo na raiz do Documents
-            std::ofstream arquivo(caminhoArquivo);
-            if (arquivo.is_open()) {
-                arquivo << "==================================================\n";
-                arquivo << "PES 2017 Launcher Iniciado com Sucesso no iOS!\n";
-                arquivo << "==================================================\n\n";
-                arquivo << "Status: Pasta 'pes' validada e criada automaticamente.\n";
-                arquivo << "Arquivos detectados: " << (g_ArquivosDoJogoEncontrados ? "SIM" : "NAO") << "\n\n";
-                arquivo << "Instrucoes: Coloque o seu default.xex limpo (TU0) e as mídias (.cpk) estritamente dentro da pasta 'pes'.\n";
-                arquivo.close();
-            }
-        }
-    } catch (...) {}
-
-    // CRIAÇÃO DA INTERFACE MODERNA OBRIGATÓRIA PARA VALIDAR O BUNDLE NO IOS
-    UIScreen *telaPrincipal = [UIScreen mainScreen];
-    self.window = [[UIWindow alloc] initWithFrame:[telaPrincipal bounds]];
-    
-    UIViewController *viewControllerPrincipal = [[UIViewController alloc] init];
-    viewControllerPrincipal.view.backgroundColor = [UIColor blackColor]; // Mantém a tela preta de prontidão
-    
-    self.window.rootViewController = viewControllerPrincipal;
-    [self.window makeKeyAndVisible];
+        // CRIAÇÃO DA INTERFACE MODERNA OBRIGATÓRIA PARA VALIDAR O BUNDLE NO IOS
+        UIScreen *telaPrincipal = [UIScreen mainScreen];
+        self.window = [[UIWindow alloc] initWithFrame:[telaPrincipal bounds]];
+        
+        UIViewController *viewControllerPrincipal = [[UIViewController alloc] init];
+        viewControllerPrincipal.view.backgroundColor = [UIColor blackColor]; // Mantém a tela preta de prontidão
+        
+        self.window.rootViewController = viewControllerPrincipal;
+        [self.window makeKeyAndVisible];
+    }
 
     return YES;
 }
@@ -127,7 +126,15 @@ extern "C" {
 // Ponto de entrada padrão em escopo global regulamentado com privilégio total de Sandbox móvel
 __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
     @autoreleasepool {
-        // Passando @"UIApplication" explicitamente para dar ao PESAppDelegate as credenciais de disco e interface móvel
-        return UIApplicationMain(argc, argv, @"UIApplication", NSStringFromClass([PESAppDelegate class]));
+        // Inicializa o ecossistema móvel disparando as permissões de gravação de arquivos
+        UIApplicationMain(argc, argv, @"UIApplication", NSStringFromClass([PESAppDelegate class]));
+        
+        // LOOP INFINITO DE SEGURANÇA: Se os arquivos do jogo não estiverem lá, prende o processo ativo na tela preta
+        if (!g_ArquivosDoJogoEncontrados) {
+            extern void CFRunLoopRun(void);
+            CFRunLoopRun();
+        }
+        
+        return 0;
     }
 }
