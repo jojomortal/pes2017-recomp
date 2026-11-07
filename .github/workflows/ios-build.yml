@@ -31,13 +31,21 @@ jobs:
           echo "/* Mock Mapping */" > ppc/ppc_func_mapping.cpp
           dd if=/dev/zero of=pes/default.xex bs=1024 count=500
           
-          # MAPEAMENTO DE BUSCA DOS SHADERS DO XBOX:
-          # Cria links de cabeçalho mínimos exigidos pelo compilador Clang no Mac
-          mkdir -p runtime/gpu/xe/shim/rex
-          echo "#include <assert.h>" > runtime/gpu/xe/shim/rex/assert.h
+          # CRIAÇÃO FÍSICA NO DIRETÓRIO DO ERRO: 
+          # Cria a pasta rex e graphics diretamente onde o interpreter.cpp está buscando localmente
+          mkdir -p runtime/gpu/xe/rex
+          mkdir -p runtime/gpu/xe/rex/graphics
+          mkdir -p runtime/gpu/xe/rex/graphics/pipeline/shader
           
-          # Garante uma rota local 'rex' que aponta diretamente para a pasta da GPU Xenon (xe) do projeto
-          ln -s runtime/gpu/xe rex || true
+          # Injeta o assert.h físico localmente
+          echo "#ifndef REX_ASSERT_H" > runtime/gpu/xe/rex/assert.h
+          echo "#define REX_ASSERT_H" >> runtime/gpu/xe/rex/assert.h
+          echo "#include <assert.h>" >> runtime/gpu/xe/rex/assert.h
+          echo "#endif" >> runtime/gpu/xe/rex/assert.h
+          
+          # Copia os cabeçalhos originais da GPU em lote para dentro da subpasta rex local
+          cp runtime/gpu/xe/*.h runtime/gpu/xe/rex/graphics/ 2>/dev/null || true
+          cp runtime/gpu/xe/*.h runtime/gpu/xe/rex/graphics/pipeline/shader/ 2>/dev/null || true
           
           for dir in "." "ppc" "runtime"; do
             echo "#ifndef PPC_RECOMP_SHARED_H" > "$dir/ppc_recomp_shared.h"
@@ -94,8 +102,8 @@ jobs:
             -DPES17_USE_METAL=ON \
             -DENABLE_AUDIO_DISABLED=ON \
             -DENABLE_AUDIO_SDL=OFF \
-            -DCMAKE_C_FLAGS="-O3 -ffast-math -I../ -I../runtime/gpu/xe/ -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
-            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -I../ -I../runtime/gpu/xe/ -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
+            -DCMAKE_C_FLAGS="-O3 -ffast-math -I../runtime/gpu/xe/rex/ -DSDL_AUDIO_DISABLED=1 -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\"" \
+            -DCMAKE_CXX_FLAGS="-O3 -ffast-math -I../runtime/gpu/xe/rex/ -DSDL_AUDIO_DISABLED=1 -DloadFromGuest\(\)= -DPES17_XEX_SHA256_SP=\"\\\"00000000000000000000000000000000\\\"\""
 
           echo "3. Compilando o executavel..."
           make pes17
