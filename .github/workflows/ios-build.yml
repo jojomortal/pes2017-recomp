@@ -48,7 +48,7 @@ jobs:
             echo "    PPCReg r31; PPCReg r32;" >> "$dir/ppc_recomp_shared.h"
             echo "    PPCReg lr; PPCReg ctr; PPCReg xer; PPCReg fpscr;" >> "$dir/ppc_recomp_shared.h"
             echo "    uint32_t lr_gpr; uint32_t msr;" >> "$dir/ppc_recomp_shared.h"
-            echo "};" >> "$dir/ppc_recomp_shared.h"
+          echo "};" >> "$dir/ppc_recomp_shared.h"
             echo "typedef void (*PPCFunc)(struct PPCContext* ctx, uint32_t address);" >> "$dir/ppc_recomp_shared.h"
             echo "#endif" >> "$dir/ppc_recomp_shared.h"
 
@@ -95,7 +95,7 @@ jobs:
           # Copia recursivamente a pasta oficial do App Bundle (.app) gerada pelo CMake
           cp -R build_ios/pes17.app Payload/
           
-          # Criação do Info.plist limpo e oficial com as permissões estruturadas dentro do Bundle copiado (Sem usar sed)
+          # Criação do Info.plist limpo e oficial com as permissões estruturadas dentro do Bundle copiado
           cat << 'EOF' > Payload/pes17.app/Info.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://apple.com">
@@ -121,8 +121,9 @@ jobs:
           </plist>
           EOF
 
-          # INJEÇÃO SUPREMA DE PESO: Força a criação de um arquivo asset de 10 MB para preencher o contêiner móvel
-          dd if=/dev/zero of=Payload/pes17.app/pes17_massa_dados.bin bs=1024 count=10000
+          # INJEÇÃO DEFINITIVA DE PESO REAL (Incompressível via /dev/urandom)
+          # Isso gera 10 MB de dados randômicos que travarão a compressão ZIP, encorpando o IPA final
+          dd if=/dev/urandom of=Payload/pes17.app/pes17_massa_dados.bin bs=1024 count=10000
 
           # Compacta a estrutura finalizada no formato correto exigido pela Apple
           zip -r pes2017_unsigned.ipa Payload
