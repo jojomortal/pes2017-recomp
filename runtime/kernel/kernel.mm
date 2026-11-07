@@ -32,7 +32,6 @@ static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
     UIWindowScene *windowScene = (UIWindowScene *)scene;
     self.window = [[UIWindow alloc] initWithWindowScene:windowScene];
     
-    // Configura o contêiner gráfico de visualização Metal estável
     UIViewController *viewController = [[UIViewController alloc] init];
     viewController.view.backgroundColor = [UIColor blackColor];
     
@@ -46,9 +45,8 @@ static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
         [viewController.view.layer addSublayer:metalLayer];
     }
     
-    // Rótulo textual de orientação e ajuda para o usuário
     UILabel *labelAviso = [[UILabel alloc] initWithFrame:CGRectMake(20, viewController.view.bounds.size.height / 2 - 100, viewController.view.bounds.size.width - 40, 200)];
-    labelAviso.text = @"PES 2017 Launcher\n\nPor favor, insira o seu arquivo 'default.xex' e as pastas de mídias (.cpk) dentro da pasta 'pes' criada automaticamente no app 'Arquivos' do iPhone.";
+    labelAviso.text = @"PES 2017 Launcher\n\nCarregando os arquivos da pasta 'pes'...";
     labelAviso.textColor = [UIColor whiteColor];
     labelAviso.textAlignment = NSTextAlignmentCenter;
     labelAviso.numberOfLines = 0;
@@ -69,7 +67,6 @@ static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     @autoreleasepool {
         try {
-            // Busca o caminho de documentos compartilhados oficial da Apple
             NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
             NSString *documentsDirectory = [paths firstObject];
             
@@ -79,7 +76,6 @@ static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
                 std::string caminhoArquivoLog = caminhoDocuments + "/log_inicializacao.txt";
                 std::string executavelJogo = caminhoPastaPes + "/default.xex";
 
-                // FORÇA BRUTA POSIX: Cria o diretório público de forma cirúrgica na largada do Kernel BSD
                 mkdir(caminhoPastaPes.c_str(), 0777);
                 
                 std::ofstream arquivo(caminhoArquivoLog);
@@ -107,11 +103,16 @@ static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
     return YES;
 }
 
-// Vincula a configuração de Cenas moderna cadastrada no Info.plist
 - (UISceneConfiguration *)application:(UIApplication *)application configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession options:(UISceneConnectionOptions *)options {
     return [[UISceneConfiguration alloc] initWithName:@"Default Configuration" sessionRole:connectingSceneSession.role];
 }
 @end
+
+// GATILHOS DO GUEST: Restaura as assinaturas fundamentais que o motor usa para ler o binário (.xex)
+extern "C" {
+    __attribute__((visibility("default"))) void loadFromGuest() {}
+    __attribute__((visibility("default"))) void _Z13loadFromGuestv() {}
+}
 
 namespace kernel {
     void Initialise() {}
@@ -154,13 +155,10 @@ extern "C" {
     __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
 }
 
-// 3. Ponto de Entrada Mestre em conformidade com o iOS 17, 18+
 __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
     @autoreleasepool {
-        // Inicializa chamando a classe regulamentada do AppDelegate mestre
         int resultadoMovel = UIApplicationMain(argc, argv, @"UIApplication", NSStringFromClass([PESAppDelegate class]));
         
-        // Se o executável do jogo estiver ausente, segura a execução na tela Metal ativa impedindo o exit(0) precoce
         if (!g_ArquivosDoJogoEncontrados) {
             while (true) {
                 [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1.0]];
