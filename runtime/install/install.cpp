@@ -4,8 +4,10 @@
 #include <filesystem>
 #include <fstream>
 #include <vector>
+#include <cstdio>
+#include <cstdlib>
 
-// Funções de baixo nível exigidas pelo motor para registrar caminhos virtuais (VFS)
+// Funcoes de baixo nivel exigidas pelo motor para registrar caminhos virtuais (VFS)
 extern "C" {
     __attribute__((visibility("default"))) void VFS_RegisterMount(const char* virtual_path, const char* physical_path);
     __attribute__((visibility("default"))) void VFS_ClearMounts();
@@ -13,26 +15,35 @@ extern "C" {
 
 namespace install {
 
-    // Função mestre que prepara o leitor de mídias na largada do aplicativo
+    // Funcao mestre que prepara o leitor de midias na largada do aplicativo
     __attribute__((visibility("default"))) void Initialise() {
         try {
-            // Busca o caminho de documentos compartilhados oficial do Sandbox do iOS de forma direta via C++ filesystem
-            // Isso elimina a dependência do kernel.h e resolve o caminho em qualquer lugar do iPhone
-            std::filesystem::path rotaHome = std::filesystem::current_path();
-            std::filesystem::path raizPastaPes = std::filesystem::path(getenv("HOME") ? getenv("HOME") : ".") / "Documents/pes";
+            std::string caminhoRaizStr = ".";
+
+            // No iOS, pegamos o caminho do Bundle que mapeamos dinamicamente no platform.cpp
+            if (const char* iosBundleDir = std::getenv("PES17_IOS_BUNDLE_DIR")) {
+                caminhoRaizStr = std::string(iosBundleDir);
+                std::printf("[iOS VFS] Redirecionando VFS para o Bundle Interno: %s\n", caminhoRaizStr.c_str());
+            } else {
+                // Fallback seguro caso a variavel nao esteja pronta
+                if (std::filesystem::exists("massa_dados.bin")) {
+                    caminhoRaizStr = std::filesystem::current_path().string();
+                } else {
+                    std::filesystem::path raizPastaPes = std::filesystem::path(getenv("HOME") ? getenv("HOME") : ".") / "Documents/pes";
+                    std::filesystem::create_directories(raizPastaPes);
+                    caminhoRaizStr = raizPastaPes.string();
+                }
+            }
             
-            std::string caminhoRaizStr = raizPastaPes.string();
-            
-            // LIMPA OS ACESSOS ANTIGOS DO ANDROID
-            // Força o motor a tratar a própria pasta raiz "pes" como o centro de mídias (./)
+            // Limpa os acessos anteriores do motor
             VFS_ClearMounts();
             
-            // Mapeia os caminhos lógicos do Xbox 360 diretamente para a pasta "pes" pública do iPhone
+            // Mapeia os caminhos logicos do Xbox 360 diretamente para a rota valida do iPhone
             VFS_RegisterMount("game:/", caminhoRaizStr.c_str());
             VFS_RegisterMount("d:/", caminhoRaizStr.c_str());
             VFS_RegisterMount("cache:/", caminhoRaizStr.c_str());
             
-            // Grava uma flag de sucesso no log confirmando o redirecionamento dos arquivos soltos
+            // Grava uma flag de sucesso no log confirmando o redirecionamento
             std::string caminhoLogVFS = caminhoRaizStr + "/log_vfs_ios.txt";
             std::ofstream arquivoLog(caminhoLogVFS);
             if (arquivoLog.is_open()) {
@@ -49,7 +60,7 @@ namespace install {
         VFS_ClearMounts();
     }
 
-    // Mocks fortes de instalação exigidos para manter a integridade do Linker arm64 nativo
+    // Mocks fortes de instalacao exigidos para manter a integridade do Linker arm64 nativo
     __attribute__((visibility("default"))) bool IsInstalled() { return true; }
     __attribute__((visibility("default"))) bool CopyGameFiles() { return true; }
     __attribute__((visibility("default"))) float GetCopyProgress() { return 1.0f; }
@@ -57,7 +68,7 @@ namespace install {
     __attribute__((visibility("default"))) uint64_t GetAvailableSpace() { return 1024 * 1024 * 1024; }
 }
 
-// Assinaturas remanescentes em escopo C puro para blindar as chamadas cruzadas de mídia
+// Assinaturas remanescentes em escopo C puro para blindar as chamadas cruzadas de midia
 extern "C" {
     __attribute__((visibility("default"))) void VFS_RegisterMount(const char* virtual_path, const char* physical_path) {}
     __attribute__((visibility("default"))) void VFS_ClearMounts() {}
