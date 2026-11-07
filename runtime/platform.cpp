@@ -167,11 +167,38 @@ void* platform::Symbol(void* library, const char* name)
 #else
 
 // Implementações POSIX genéricas para iOS/macOS/Linux
-void platform::Initialise() {}
+namespace
+{
+    pthread_t g_appleMainThread;
+}
+
+void platform::Initialise()
+{
+#if defined(__APPLE__)
+    g_appleMainThread = pthread_self();
+    std::printf("[iOS platform] Inicializando ambiente Apple Core Foundation.\n");
+    
+    // Configura uma variável de ambiente simulada para fixar o sandbox no diretório do app
+    char pathBuffer[PATH_MAX];
+    uint32_t size = sizeof(pathBuffer);
+    extern int _NSGetExecutablePath(char* buf, uint32_t* bufsize);
+    if (_NSGetExecutablePath(pathBuffer, &size) == 0)
+    {
+        std::string exePath(pathBuffer);
+        size_t lastSlash = exePath.find_last_of("/");
+        if (lastSlash != std::string::npos)
+        {
+            std::string bundleDir = exePath.substr(0, lastSlash);
+            setenv("PES17_IOS_BUNDLE_DIR", bundleDir.c_str(), 1);
+            std::printf("[iOS platform] Diretório do Bundle mapeado: %s\n", bundleDir.c_str());
+        }
+    }
+#endif
+}
 
 #if defined(__APPLE__)
 uint32_t platform::ThreadId() { return uint32_t(pthread_mach_thread_np(pthread_self())); }
-bool platform::IsMainThread() { return pthread_main_np() != 0; }
+bool platform::IsMainThread() { return pthread_equal(pthread_self(), g_appleMainThread) != 0; }
 #else
 uint32_t platform::ThreadId() { return uint32_t(gettid()); }
 bool platform::IsMainThread() { return gettid() == getpid(); }
@@ -198,7 +225,6 @@ void platform::LowerThreadPriority()
 void platform::IdleThreadPriority()
 {
 #if defined(__APPLE__)
-    // O iOS não possui SCHED_IDLE, então usamos o fallback de prioridade baixa do projeto
     LowerThreadPriority();
 #else
     sched_param none{};
@@ -250,32 +276,40 @@ namespace
             {
                 if (c.freq >= maxFreq * 95 / 100)
                     topo.primeMask |= (1u << c.id);
-                else if (c.freq >= maxFreq * 75 / 100)
-                    topo.perfMask |= (1u << c.id);
-                else
-                    topo.workerMask |= (1u << c.id);
-            }
-            if (!topo.perfMask) topo.perfMask = topo.primeMask;
-            if (!topo.workerMask) topo.workerMask = topo.perfMask;
-        }
-        else
-        {
-            if (maxCpus >= 8)
-            {
-                topo.primeMask = (1u << 7);
-                topo.perfMask = (1u << 4) | (1u << 5) | (1u << 6);
-                topo.workerMask = (1u << 0) | (1u << 1) | (1u << 2) | (1u << 3);
             }
         }
+        topo.discovered = true;
         return topo;
     }
 }
 
-void platform::SetThreadAffinity(ThreadAffinityRole role) {}
-void platform::PrintBacktrace(const char* why) {}
-bool platform::StartThread(void (*body)(void*), void* argument, size_t stackBytes, const char* name) { return false; }
-void* platform::OpenLibrary(const char* path) { return nullptr; }
-void* platform::LoadedLibrary(const char* name) { return nullptr; }
-void* platform::Symbol(void* library, const char* name) { return nullptr; }
+void platform::SetThreadAffinity(ThreadAffinityRole role)
+{
+#if !defined(__APPLE__)
+    if (role == ThreadAffinityRole::Default) return;
+    static CpuTopology topo = DiscoverCpuTopology();
+    if (!topo.discovered) return;
 
+    uint32_t mask = 0;
+    if (role == ThreadAffinityRole::PrimeCore) mask = topo.primeMask;
+    else if (role == ThreadAffinityRole::PerformanceCore) mask = topo.perfMask;
+    else if (role == ThreadAffinityRole::WorkerCore) mask = topo.workerMask;
+
+    if (mask)
+    {
+        cpu_set_set t;
+        CPU_ZERO(&t);
+        for (int i = 0; i < 32; ++i)
+        {
+            if (mask & (1u << i)) CPU_SET(i, &t);
+        }
+        pthread_setaffinity_np(pthread_self(), sizeof(t), &t);
+    }
 #endif
+}
+
+void platform::PrintBacktrace(const char* why)
+{
+#if !defined(__ANDROID__)
+    void* frames[64];
+    int n = backtrace(frames, 64);
