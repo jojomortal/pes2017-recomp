@@ -5,61 +5,63 @@
 #include <fstream>
 #include <string>
 
-// Importação das bibliotecas nativas de interface, gráficos e Metal da Apple
+// Importações nativas do ecossistema Apple móvel
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <QuartzCore/CAMetalLayer.h>
 #import <Metal/Metal.h>
 
-// Inclusão de cabeçalhos POSIX do sistema para comandos brutas de baixo nível
+// Cabeçalhos POSIX de baixo nível para criação cirúrgica de pastas
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
-// Variáveis de controle de caminhos dinâmicos e memória
 static std::filesystem::path g_CaminhoJogoValido;
 static bool g_ArquivosDoJogoEncontrados = false;
 static uint8_t* g_MemoriaVirtualConcedida = nullptr;
 static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
 
-// Interface do ViewController Gráfico Nativo do iOS
-@interface PESViewController : UIViewController
-@property (nonatomic, strong) CAMetalLayer *metalLayer;
-@property (nonatomic, strong) id<MTLDevice> metalDevice;
+// 1. Definição do SceneDelegate exigido pelas versões modernas do iOS
+@interface PESSceneDelegate : UIResponder <UIWindowSceneDelegate>
+@property (strong, nonatomic) UIWindow *window;
 @end
 
-@implementation PESViewController
+@implementation PESSceneDelegate
 
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    self.view.backgroundColor = [UIColor blackColor];
+- (void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)connectionOptions {
+    UIWindowScene *windowScene = (UIWindowScene *)scene;
+    self.window = [[UIWindow alloc] initWithWindowScene:windowScene];
     
-    // 1. INICIALIZAÇÃO DO MOTOR GRÁFICO REAL DA APPLE (Metal API)
-    self.metalDevice = MTLCreateSystemDefaultDevice();
+    // Configura o contêiner gráfico de visualização Metal estável
+    UIViewController *viewController = [[UIViewController alloc] init];
+    viewController.view.backgroundColor = [UIColor blackColor];
     
-    if (self.metalDevice) {
-        self.metalLayer = [CAMetalLayer layer];
-        self.metalLayer.device = self.metalDevice;
-        self.metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
-        self.metalLayer.frame = self.view.bounds;
-        self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-        [self.view.layer addSublayer:self.metalLayer];
+    id<MTLDevice> device = MTLCreateSystemDefaultDevice();
+    if (device) {
+        CAMetalLayer *metalLayer = [CAMetalLayer layer];
+        metalLayer.device = device;
+        metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
+        metalLayer.frame = viewController.view.bounds;
+        viewController.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        [viewController.view.layer addSublayer:metalLayer];
     }
     
-    // 2. INTERFACE VISUAL DE AVISO DA COMUNIDADE
-    UILabel *labelAviso = [[UILabel alloc] initWithFrame:CGRectMake(20, self.view.bounds.size.height / 2 - 100, self.view.bounds.size.width - 40, 200)];
-    labelAviso.text = @"PES 2017 Launcher - iOS\n\nPor favor, insira o arquivo 'default.xex' e as mídias (.cpk) dentro da pasta 'pes' usando o app 'Arquivos' do iPhone.";
+    // Rótulo textual de orientação e ajuda para o usuário
+    UILabel *labelAviso = [[UILabel alloc] initWithFrame:CGRectMake(20, viewController.view.bounds.size.height / 2 - 100, viewController.view.bounds.size.width - 40, 200)];
+    labelAviso.text = @"PES 2017 Launcher\n\nPor favor, insira o seu arquivo 'default.xex' e as pastas de mídias (.cpk) dentro da pasta 'pes' criada automaticamente no app 'Arquivos' do iPhone.";
     labelAviso.textColor = [UIColor whiteColor];
     labelAviso.textAlignment = NSTextAlignmentCenter;
     labelAviso.numberOfLines = 0;
     labelAviso.font = [UIFont systemFontOfSize:16 weight:UIFontWeightBold];
-    [self.view addSubview:labelAviso];
+    [viewController.view addSubview:labelAviso];
+    
+    self.window.rootViewController = viewController;
+    [self.window makeKeyAndVisible];
 }
 @end
 
-// 3. Ciclo de Vida do Aplicativo Oficial da Apple (AppDelegate)
+// 2. AppDelegate que gerencia o ciclo inicial e a criação forçada da pasta pes/
 @interface PESAppDelegate : UIResponder <UIApplicationDelegate>
-@property (strong, nonatomic) UIWindow *window;
 @end
 
 @implementation PESAppDelegate
@@ -67,7 +69,7 @@ static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     @autoreleasepool {
         try {
-            // Busca de forma oficial o caminho absoluto da pasta Documents pública do Sandbox do iOS
+            // Busca o caminho de documentos compartilhados oficial da Apple
             NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
             NSString *documentsDirectory = [paths firstObject];
             
@@ -77,22 +79,18 @@ static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
                 std::string caminhoArquivoLog = caminhoDocuments + "/log_inicializacao.txt";
                 std::string executavelJogo = caminhoPastaPes + "/default.xex";
 
-                // FORÇA BRUTA: Cria a pasta chamando o comando POSIX de baixo nível antes de iniciar a engine
+                // FORÇA BRUTA POSIX: Cria o diretório público de forma cirúrgica na largada do Kernel BSD
                 mkdir(caminhoPastaPes.c_str(), 0777);
                 
-                // Grava o arquivo de log explicativo na raiz do Documents usando fstream cru
                 std::ofstream arquivo(caminhoArquivoLog);
                 if (arquivo.is_open()) {
                     arquivo << "==================================================\n";
-                    arquivo << "PES 2017 Launcher Iniciado com Sucesso no iOS!\n";
-                    arquivo << "==================================================\n\n";
-                    arquivo << "Status: Pasta 'pes' criada automaticamente por baixo nivel.\n";
+                    arquivo << "PES 2017 Launcher Ativo via Modelo Sonic 2006!\n";
+                    arquivo << "==================================================\n";
                     arquivo.close();
                 }
                 
                 g_CaminhoJogoValido = caminhoPastaPes;
-
-                // Checa de forma física e direta se o jogo foi injetado pelo usuário
                 if (std::filesystem::exists(executavelJogo)) {
                     g_ArquivosDoJogoEncontrados = true;
                 }
@@ -105,50 +103,22 @@ static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
                 }
             }
         } catch (...) {}
-
-        // Monta e exibe a janela com o contexto gráfico ativo da Apple
-        self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
-        PESViewController *viewController = [[PESViewController alloc] init];
-        self.window.rootViewController = viewController;
-        [self.window makeKeyAndVisible];
-
-        // TRAVA DE SEGURANÇA SUPREMA NO LUGAR CERTO: Se o jogo não estiver lá, congela a execução aqui
-        // Isso impede que as threads de mídia ou o motor deem exit(0), segurando a tela preta e a pasta ativas
-        if (!g_ArquivosDoJogoEncontrados) {
-            while (true) {
-                [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1.0]];
-            }
-        }
     }
     return YES;
+}
+
+// Vincula a configuração de Cenas moderna cadastrada no Info.plist
+- (UISceneConfiguration *)application:(UIApplication *)application configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession options:(UISceneConnectionOptions *)options {
+    return [[UISceneConfiguration alloc] initWithName:@"Default Configuration" sessionRole:connectingSceneSession.role];
 }
 @end
 
 namespace kernel {
     void Initialise() {}
     void Shutdown() {}
-
-    __attribute__((visibility("default"))) const std::filesystem::path& GameRoot() {
-        return g_CaminhoJogoValido;
-    }
-
-    __attribute__((visibility("default"))) uint32_t ToPhysical(unsigned int address) { 
-        if (g_MemoriaVirtualConcedida && address < g_TamanhoMemoriaXbox) {
-            return (uint32_t)(uintptr_t)(g_MemoriaVirtualConcedida + address);
-        }
-        return 0; 
-    }
-    
-    __attribute__((visibility("default"))) uint32_t FromPhysical(unsigned int physicalAddress) { 
-        if (g_MemoriaVirtualConcedida && (uintptr_t)physicalAddress >= (uintptr_t)g_MemoriaVirtualConcedida) {
-            uintptr_t offset = (uintptr_t)physicalAddress - (uintptr_t)g_MemoriaVirtualConcedida;
-            if (offset < g_TamanhoMemoriaXbox) {
-                return (uint32_t)offset;
-            }
-        }
-        return 0; 
-    }
-
+    __attribute__((visibility("default"))) const std::filesystem::path& GameRoot() { return g_CaminhoJogoValido; }
+    __attribute__((visibility("default"))) uint32_t ToPhysical(unsigned int a) { return g_MemoriaVirtualConcedida ? (uint32_t)(uintptr_t)(g_MemoriaVirtualConcedida + a) : 0; }
+    __attribute__((visibility("default"))) uint32_t FromPhysical(unsigned int p) { return g_MemoriaVirtualConcedida ? (uint32_t)((uintptr_t)p - (uintptr_t)g_MemoriaVirtualConcedida) : 0; }
     __attribute__((visibility("default"))) uint64_t SystemTime100ns() { return 0; }
     __attribute__((visibility("default"))) void ReportUnimplemented() {}
     __attribute__((visibility("default"))) void ReportAllocRate() {}
@@ -158,7 +128,6 @@ namespace kernel {
     __attribute__((visibility("default"))) void CompleteOverlapped(unsigned int a, unsigned int b) {}
     __attribute__((visibility("default"))) void WindowTrace(char const* a, char const* b, unsigned int c, unsigned int d, char const* e) {}
     __attribute__((visibility("default"))) void TraceImport(char const* a, unsigned int b, const void* p) {}
-
     __attribute__((visibility("default"))) uint32_t AllocateGuest(unsigned int a, unsigned int b) { return 0; }
     __attribute__((visibility("default"))) void PostNotification(unsigned int a, unsigned int b) {}
     __attribute__((visibility("default"))) PPCFunc* GuestFunction(uint32_t address) { return nullptr; }
@@ -167,7 +136,6 @@ namespace kernel {
     __attribute__((visibility("default"))) bool FreeGuest(uint32_t address) { return true; }
     __attribute__((visibility("default"))) void TraceImport(char const* a, unsigned int b, const PPCContext& c) {}
     __attribute__((visibility("default"))) void UpdateTimestampBundle() {}
-
     __attribute__((visibility("default"))) void AcceptInvite(uint64_t a, uint64_t b, const unsigned char* c, bool d) {}
     __attribute__((visibility("default"))) void MovePlayerData(uint64_t a, uint64_t b, uint64_t c) {}
     __attribute__((visibility("default"))) void QueueUserApc(unsigned int a, unsigned int b, unsigned int c, const std::function<void()>& d) {}
@@ -179,18 +147,25 @@ namespace crash {
     __attribute__((visibility("default"))) char const* CurrentThreadName() { return "Main"; }
 }
 
-namespace engine {
-    __attribute__((visibility("default"))) void ReportPredicateWaits() {}
-}
+namespace engine { void ReportPredicateWaits() {} }
 
 extern "C" {
     __attribute__((visibility("default"))) void SampleCountEvent(unsigned int a) {}
     __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
 }
 
-// 4. Ponto de Entrada Oficial Regulamentado da Apple
+// 3. Ponto de Entrada Mestre em conformidade com o iOS 17, 18+
 __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
     @autoreleasepool {
-        return UIApplicationMain(argc, argv, @"UIApplication", NSStringFromClass([PESAppDelegate class]));
+        // Inicializa chamando a classe regulamentada do AppDelegate mestre
+        int resultadoMovel = UIApplicationMain(argc, argv, @"UIApplication", NSStringFromClass([PESAppDelegate class]));
+        
+        // Se o executável do jogo estiver ausente, segura a execução na tela Metal ativa impedindo o exit(0) precoce
+        if (!g_ArquivosDoJogoEncontrados) {
+            while (true) {
+                [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1.0]];
+            }
+        }
+        return resultadoMovel;
     }
 }
