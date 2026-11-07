@@ -11,6 +11,7 @@
 
 // Variável estática global que guardará o caminho correto descoberto dinamicamente
 static std::filesystem::path g_CaminhoJogoValido;
+static bool g_ArquivosDoJogoEncontrados = false;
 
 // 1. Definição do Ciclo de Vida do Aplicativo Oficial da Apple (AppDelegate)
 @interface PESAppDelegate : UIResponder <UIApplicationDelegate>
@@ -29,12 +30,18 @@ static std::filesystem::path g_CaminhoJogoValido;
             std::string caminhoDocuments = [documentsDirectory UTF8String];
             std::string caminhoPastaPes = caminhoDocuments + "/pes";
             std::string caminhoArquivo = caminhoDocuments + "/log_inicializacao.txt";
+            std::string executavelJogo = caminhoPastaPes + "/default.xex";
 
             // FORÇA A CRIAÇÃO AUTOMÁTICA DA SUBPASTA CORRETA
             std::filesystem::create_directories(caminhoPastaPes);
             
             // Fixa o caminho global para a engine buscar os dados estritamente dentro da subpasta pes/
             g_CaminhoJogoValido = caminhoPastaPes;
+
+            // Verifica se o usuário já colocou o executável do jogo na pasta correta
+            if (std::filesystem::exists(executavelJogo)) {
+                g_ArquivosDoJogoEncontrados = true;
+            }
 
             // Grava o arquivo de log explicativo na raiz do Documents
             std::ofstream arquivo(caminhoArquivo);
@@ -43,6 +50,7 @@ static std::filesystem::path g_CaminhoJogoValido;
                 arquivo << "PES 2017 Launcher Iniciado com Sucesso no iOS!\n";
                 arquivo << "==================================================\n\n";
                 arquivo << "Status: Pasta 'pes' validada e criada automaticamente.\n";
+                arquivo << "Arquivos detectados: " << (g_ArquivosDoJogoEncontrados ? "SIM" : "NAO") << "\n\n";
                 arquivo << "Instrucoes: Coloque o seu default.xex limpo (TU0) e as mídias (.cpk) estritamente dentro da pasta 'pes'.\n";
                 arquivo.close();
             }
@@ -56,7 +64,7 @@ static std::filesystem::path g_CaminhoJogoValido;
     
     // Injeção de uma label de ajuda na tela caso o usuário abra o app sem os arquivos
     UILabel *labelAviso = [[UILabel alloc] initWithFrame:CGRectMake(20, 100, self.window.bounds.size.width - 40, 200)];
-    labelAviso.text = @"PES 2017 Launcher\n\nPor favor, insira os arquivos convertidos do Xbox 360 estritamente dentro da pasta 'pes' usando o aplicativo 'Arquivos' do iPhone.";
+    labelAviso.text = @"PES 2017 Launcher\n\nPor favor, insira os arquivos convertidos do Xbox 360 estritamente dentro da pasta 'pes' usando o aplicativo 'Arquivos' do iPhone ou o iTunes no PC.";
     labelAviso.textColor = [UIColor whiteColor];
     labelAviso.textAlignment = NSTextAlignmentCenter;
     labelAviso.numberOfLines = 0;
@@ -124,9 +132,18 @@ extern "C" {
     __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
 }
 
-// Ponto de entrada padrão limpo em escopo global (atende à exigência do Xcode App Bundle)
+// Ponto de entrada padrão limpo em escopo global
 __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
     @autoreleasepool {
-        return UIApplicationMain(argc, argv, nil, NSStringFromClass([PESAppDelegate class]));
+        // Inicializa a interface da Apple primeiro para disparar os privilégios de arquivos do iOS
+        UIApplicationMain(argc, argv, nil, NSStringFromClass([PESAppDelegate class]));
+        
+        // TRAVA DE SEGURANÇA: Se não encontrar o default.xex na pasta "pes", segura o app ativo na tela de aviso
+        if (!g_ArquivosDoJogoEncontrados) {
+            extern void CFRunLoopRun(void);
+            CFRunLoopRun(); // Prende em loop infinito seguro impedindo o fechamento precoce
+        }
+        
+        return 0;
     }
 }
