@@ -15,38 +15,50 @@ extern "C" {
 
 namespace install {
 
-    // Funcao basica e síncrona para montagem do sistema de arquivos virtual
+    // Funcao basica e sincrona para montagem do sistema de arquivos virtual direcionado
     __attribute__((visibility("default"))) void Initialise() {
         try {
-            // No iOS ativo em primeiro plano, o caminho corrente "." aponta diretamente
-            // para a raiz segura do contêiner do aplicativo liberado pelo Info.plist
-            std::filesystem::path rotaAtual = std::filesystem::current_path();
-            std::string caminhoRaizStr = rotaAtual.string();
+            std::string caminhoRaizStr = ".";
+
+            // No iOS, a pasta publica visivel no aplicativo 'Arquivos' fica sempre localizada em $HOME/Documents
+            if (const char* homeEnv = std::getenv("HOME")) {
+                std::filesystem::path rotaHome(homeEnv);
+                std::filesystem::path rotaPastaPes = rotaHome / "Documents" / "pes";
+                
+                // Se a pasta pes nao existir no Sandbox por algum motivo, garante a criacao automatica
+                if (!std::filesystem::exists(rotaPastaPes)) {
+                    std::filesystem::create_directories(rotaPastaPes);
+                }
+                caminhoRaizStr = rotaPastaPes.string();
+            } else {
+                // Fallback seguro em C++ moderno caso o ambiente nao esteja populado
+                caminhoRaizStr = std::filesystem::current_path().string();
+            }
             
-            std::printf("[iOS VFS Enxuto] Montando o diretorio de dados atual: %s\n", caminhoRaizStr.c_str());
+            std::printf("[iOS VFS Direto] Montando o diretorio de dados em Documents: %s\n", caminhoRaizStr.c_str());
             
-            // Limpa mapeamentos antigos para evitar duplicidade de ponteiros de mídia
+            // Limpa mapeamentos antigos para evitar duplicidade de ponteiros de midia
             VFS_ClearMounts();
             
-            // Mapeia os caminhos logicos do motor do jogo diretamente para a rota fisica encontrada
+            // Mapeia os caminhos logicos do motor do jogo diretamente para a pasta pes publica do iPhone
             VFS_RegisterMount("game:/", caminhoRaizStr.c_str());
             VFS_RegisterMount("d:/", caminhoRaizStr.c_str());
             VFS_RegisterMount("cache:/", caminhoRaizStr.c_str());
             VFS_RegisterMount("RETAIL_DISC:/", caminhoRaizStr.c_str());
             
-            // Cria o arquivo de log para validarmos a permissao de escrita e leitura síncrona
+            // Cria o arquivo de log para validarmos o sucesso de escrita na pasta Documents
             std::string caminhoLogVFS = caminhoRaizStr + "/log_vfs_ios.txt";
             std::ofstream arquivoLog(caminhoLogVFS);
             if (arquivoLog.is_open()) {
                 arquivoLog << "==================================================\n";
-                arquivoLog << "VFS ATIVADO: Sucesso na montagem do caminho de dados!\n";
+                arquivoLog << "VFS ATIVADO COM SUCESSO: Diretorio Documents pareado!\n";
                 arquivoLog << "==================================================\n\n";
                 arquivoLog << "Rota ativa de execucao: " << caminhoRaizStr << "\n";
                 arquivoLog.close();
-                std::printf("[iOS VFS Enxuto] Arquivo log_vfs_ios.txt gerado com sucesso.\n");
+                std::printf("[iOS VFS Direto] Arquivo log_vfs_ios.txt gerado na pasta pes publica.\n");
             }
         } catch (...) {
-            std::printf("[iOS VFS ERRO] Falha ao processar o sistema de arquivos em C++.\n");
+            std::printf("[iOS VFS ERRO] Falha ao processar a montagem de rotas em C++.\n");
         }
     }
 
@@ -54,6 +66,7 @@ namespace install {
         VFS_ClearMounts();
     }
 
+    // Mocks fortes de instalacao exigidos para manter a integridade do Linker arm64 nativo
     __attribute__((visibility("default"))) bool IsInstalled() { return true; }
     __attribute__((visibility("default"))) bool CopyGameFiles() { return true; }
     __attribute__((visibility("default"))) float GetCopyProgress() { return 1.0f; }
