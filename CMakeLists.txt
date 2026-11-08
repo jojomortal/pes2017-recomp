@@ -69,10 +69,11 @@ target_link_libraries(pes17 PRIVATE
 if(APPLE)
     target_link_options(pes17 PRIVATE "-Wl,-undefined,dynamic_lookup")
     set_target_properties(pes17 PROPERTIES
-        MACOSX_BUNDLE_BUNDLE_IDENTIFIER "com.community.pes2017recomp"
+        MACOSX_BUNDLE_BUNDLE_IDENTIFIER "com.jojomortal.pes2017recomp"
         MACOSX_BUNDLE_BUNDLE_NAME "PES17-Launcher"
-        MACOSX_BUNDLE_GUI_IDENTIFIER "com.community.pes2017recomp"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.jojomortal.pes2017recomp"
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/runtime/Info.plist"
+        XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "runtime/ios.entitlements"
     )
 endif()
 
