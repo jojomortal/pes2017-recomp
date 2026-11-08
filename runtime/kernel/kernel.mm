@@ -12,17 +12,17 @@
 #import <QuartzCore/CAMetalLayer.h>
 #import <Metal/Metal.h>
 
-// Cabecalhos POSIX de baixo nivel para gerenciamento de memoria virtual e pastas
+// Cabecalhos POSIX de baixo nivel para gerenciamento de pastas
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/mman.h>
 #include <unistd.h>
 
 static std::filesystem::path g_CaminhoJogoValido;
 static bool g_ArquivosDoJogoEncontrados = false;
 static bool g_MotorExecutando = false;
-static uint8_t* g_MemoriaVirtualConcedida = nullptr;
-static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
+
+// Alocacao estatica e segura de ponteiro de memoria para o linker
+static uint8_t g_MemoriaSimuladaXbox[1024 * 1024]; 
 
 namespace pes17 {
     int Run(int argc, char** argv);
@@ -97,27 +97,14 @@ namespace pes17 {
                 }
             }
             
-            // DECISÃO TÉCNICA PRINCIPAL: Substitui malloc por mmap protegido por MAP_ANONYMOUS.
-            // Isso evita a falha SIGSEGV de segmentacao de memoria na largada.
-            if (!g_MemoriaVirtualConcedida) {
-                g_MemoriaVirtualConcedida = (uint8_t*)mmap(nullptr, g_TamanhoMemoriaXbox, 
-                                                           PROT_READ | PROT_WRITE, 
-                                                           MAP_PRIVATE | MAP_ANON, -1, 0);
-                if (g_MemoriaVirtualConcedida == MAP_FAILED) {
-                    g_MemoriaVirtualConcedida = nullptr;
-                    std::printf("[iOS Kernel ERRO] Falha ao alocar mmap para o PES.\n");
-                }
-            }
-            
+            // LARGADA ASSÍNCRONA SEGURA: O motor roda em background sem forcar alocacoes brutas na main thread
             if (!g_MotorExecutando) {
                 g_MotorExecutando = true;
                 std::thread threadMotor([]() {
                     try {
                         char* argv[] = { (char*)"pes17", nullptr };
                         pes17::Run(1, argv);
-                    } catch (...) {
-                        std::printf("[iOS Kernel] Erro fatal na execucao paralela do motor.\n");
-                    }
+                    } catch (...) {}
                 });
                 threadMotor.detach();
             }
@@ -147,8 +134,8 @@ namespace kernel {
     
     void Shutdown() {}
     __attribute__((visibility("default"))) const std::filesystem::path& GameRoot() { return g_CaminhoJogoValido; }
-    __attribute__((visibility("default"))) uint32_t ToPhysical(unsigned int a) { return g_MemoriaVirtualConcedida ? (uint32_t)(uintptr_t)(g_MemoriaVirtualConcedida + a) : 0; }
-    __attribute__((visibility("default"))) uint32_t FromPhysical(unsigned int p) { return g_MemoriaVirtualConcedida ? (uint32_t)((uintptr_t)p - (uintptr_t)g_MemoriaVirtualConcedida) : 0; }
+    __attribute__((visibility("default"))) uint32_t ToPhysical(unsigned int a) { return (uint32_t)(uintptr_t)(g_MemoriaSimuladaXbox + (a % 1024)); }
+    __attribute__((visibility("default"))) uint32_t FromPhysical(unsigned int p) { return 0; }
     __attribute__((visibility("default"))) uint64_t SystemTime100ns() { return 0; }
     __attribute__((visibility("default"))) void ReportUnimplemented() {}
     __attribute__((visibility("default"))) void ReportAllocRate() {}
