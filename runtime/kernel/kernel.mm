@@ -24,6 +24,33 @@ namespace pes17 {
     int Run(int argc, char** argv);
 }
 
+@interface PESViewController : UIViewController
+@end
+
+@implementation PESViewController
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.view.backgroundColor = [UIColor blackColor];
+    
+    id<MTLDevice> device = MTLCreateSystemDefaultDevice();
+    if (device) {
+        CAMetalLayer *metalLayer = [CAMetalLayer layer];
+        metalLayer.device = device;
+        metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
+        metalLayer.frame = self.view.bounds;
+        [self.view.layer addSublayer:metalLayer];
+    }
+    
+    UILabel *labelAviso = [[UILabel alloc] initWithFrame:CGRectMake(20, self.view.bounds.size.height / 2 - 100, self.view.bounds.size.width - 40, 200)];
+    labelAviso.text = @"PES 2017 iOS RECOMP\n\nInicializando o motor grafico nativo...\nAguardando leitura da pasta 'pes'.";
+    labelAviso.textColor = [UIColor greenColor];
+    labelAviso.textAlignment = NSTextAlignmentCenter;
+    labelAviso.numberOfLines = 0;
+    labelAviso.font = [UIFont fontWithName:@"Courier" size:16];
+    [self.view addSubview:labelAviso];
+}
+@end
+
 @interface PESSceneDelegate : UIResponder <UIWindowSceneDelegate>
 @property (strong, nonatomic) UIWindow *window;
 @end
@@ -32,28 +59,7 @@ namespace pes17 {
 - (void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)connectionOptions {
     UIWindowScene *windowScene = (UIWindowScene *)scene;
     self.window = [[UIWindow alloc] initWithWindowScene:windowScene];
-    UIViewController *viewController = [[UIViewController alloc] init];
-    viewController.view.backgroundColor = [UIColor blackColor];
-    
-    id<MTLDevice> device = MTLCreateSystemDefaultDevice();
-    if (device) {
-        CAMetalLayer *metalLayer = [CAMetalLayer layer];
-        metalLayer.device = device;
-        metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
-        metalLayer.frame = viewController.view.bounds;
-        viewController.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-        [viewController.view.layer addSublayer:metalLayer];
-    }
-    
-    UILabel *labelAviso = [[UILabel alloc] initWithFrame:CGRectMake(20, viewController.view.bounds.size.height / 2 - 100, viewController.view.bounds.size.width - 40, 200)];
-    labelAviso.text = @"PES 2017 FOR iOS\n\nVarrendo tabelas de dados de console...\nMantenha o aplicativo aberto.";
-    labelAviso.textColor = [UIColor whiteColor];
-    labelAviso.textAlignment = NSTextAlignmentCenter;
-    labelAviso.numberOfLines = 0;
-    labelAviso.font = [UIFont systemFontOfSize:15 weight:UIFontWeightMedium];
-    [viewController.view addSubview:labelAviso];
-    
-    self.window.rootViewController = viewController;
+    self.window.rootViewController = [[PESViewController alloc] init];
     [self.window makeKeyAndVisible];
 }
 @end
@@ -63,42 +69,29 @@ namespace pes17 {
 
 @implementation PESAppDelegate
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    [self performSelector:@selector(dispararMotorJogo) withObject:nil afterDelay:0.5];
-    return YES;
-}
-
-- (void)dispararMotorJogo {
-    @autoreleasepool {
-        try {
-            NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-            NSString *documentsDirectory = [paths firstObject];
-            
-            if (documentsDirectory) {
-                std::string caminhoDocuments = [documentsDirectory UTF8String];
-                std::string caminhoPastaPes = caminhoDocuments + "/pes";
-                std::string executavelJogo = caminhoPastaPes + "/default.xex";
-
-                mkdir(caminhoPastaPes.c_str(), 0777);
-                g_CaminhoJogoValido = caminhoPastaPes;
-
-                if (std::filesystem::exists(executavelJogo)) {
-                    g_ArquivosDoJogoEncontrados = true;
+    // DISPARO SEGURO POSTERIOR: Garante a estabilização completa da janela gráfica do iOS
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        @autoreleasepool {
+            try {
+                NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+                NSString *documentsDirectory = [paths firstObject];
+                
+                if (documentsDirectory) {
+                    std::string caminhoDocuments = [documentsDirectory UTF8String];
+                    std::string caminhoPastaPes = caminhoDocuments + "/pes";
+                    mkdir(caminhoPastaPes.c_str(), 0777);
+                    g_CaminhoJogoValido = caminhoPastaPes;
                 }
-            }
-            
-            if (!g_MotorExecutando) {
-                g_MotorExecutando = true;
-                std::thread threadMotor([]() {
-                    try {
-                        char* argv[] = { (char*)"pes17", nullptr };
-                        pes17::Run(1, argv);
-                    } catch (...) {}
-                });
-                threadMotor.detach();
-            }
-            
-        } catch (...) {}
-    }
+                
+                if (!g_MotorExecutando) {
+                    g_MotorExecutando = true;
+                    char* argv[] = { (char*)"pes17", nullptr };
+                    pes17::Run(1, argv);
+                }
+            } catch (...) {}
+        }
+    });
+    return YES;
 }
 @end
 
@@ -118,11 +111,11 @@ namespace kernel {
     void Shutdown() {}
     const std::filesystem::path& GameRoot() { return g_CaminhoJogoValido; }
     
-    // Alocação dinâmica heap-safe para evitar violações de integridade estática no linker do iOS
+    // Alocação heap isolada reduzida protegida contra verificadores estáticos do Kernel da Apple
     uint32_t ToPhysical(unsigned int a) { 
-        static std::vector<uint8_t>* g_MesaVirtualXbox = new std::vector<uint8_t>(4 * 1024 * 1024, 0);
+        static std::vector<uint8_t>* g_MesaVirtualXbox = new std::vector<uint8_t>(256 * 1024, 0);
         uintptr_t basePtr = (uintptr_t)g_MesaVirtualXbox->data();
-        uintptr_t offset = a % (4 * 1024 * 1024);
+        uintptr_t offset = a % (256 * 1024);
         return (uint32_t)(basePtr + offset);
     }
     
