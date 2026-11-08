@@ -33,6 +33,11 @@
 #include <thread>
 #include <vector>
 
+// Declaracao direta para o Linker encontrar o metodo no namespace sem falhas de escopo
+namespace install {
+    void Initialise();
+}
+
 static void ReportAll()
 {
     report::Write();
@@ -158,13 +163,11 @@ namespace
 #endif
     }
 
-    // Loop assincrono em segundo plano para o iOS rodar a leitura e montagem sem congelar a thread grafica principal
+    // Thread asincrona para rodar a varredura sem congelar o ciclo de vida grafico principal do iOS
     void MotorJogoIOS()
     {
-        std::printf("[iOS Motor] Iniciando execucao paralela do VFS de mídias do PES.\n");
+        std::printf("[iOS Motor] Iniciando execucao paralela do VFS de midias do PES.\n");
         install::Initialise();
-        
-        // Aqui o motor continua a execucao em segundo plano de forma enxuta
         std::printf("[iOS Motor] VFS e interpretador acionados com sucesso.\n");
     }
 }
@@ -196,11 +199,9 @@ int pes17::Run(int argc, char** argv)
     if (!kept.empty()) LOGI("settings: %s", kept.c_str());
 
 #ifdef __APPLE__
-    // DECISAO TECNICA: Dispara o leitor e montador VFS em uma thread separada.
-    // Isso mantem a Main Thread do iOS livre e viva, quebrando o travamento de inatividade (lifecycle deactivation)!
+    // Inicia a leitura assincrona dos arquivos soltos fora da Main Thread
     std::thread t_motor(MotorJogoIOS);
     t_motor.detach();
-
     return 0;
 #else
     return 0;
