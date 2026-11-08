@@ -51,8 +51,9 @@ if(APPLE)
     )
 endif()
 
-# Inicialização mestre focando no kernel.mm como ponto centralizado do App Bundle
-add_executable(pes17 MACOSX_BUNDLE ${RUNTIME_SOURCES} "${CMAKE_SOURCE_DIR}/runtime/kernel/kernel.mm" "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp")
+# CORREÇÃO CIRÚRGICA DE ASSINATURA:
+# Removemos a flag MACOSX_BUNDLE para compilar o executavel de forma 100% nativa para iOS
+add_executable(pes17 ${RUNTIME_SOURCES} "${CMAKE_SOURCE_DIR}/runtime/kernel/kernel.mm" "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp")
 
 target_link_libraries(pes17 PRIVATE 
     ppc_recomp 
@@ -69,10 +70,9 @@ target_link_libraries(pes17 PRIVATE
 if(APPLE)
     target_link_options(pes17 PRIVATE "-Wl,-undefined,dynamic_lookup")
     set_target_properties(pes17 PROPERTIES
-        MACOSX_BUNDLE_BUNDLE_IDENTIFIER "com.jojomortal.pes2017recomp"
-        MACOSX_BUNDLE_BUNDLE_NAME "PES17-Launcher"
-        MACOSX_BUNDLE_GUI_IDENTIFIER "com.jojomortal.pes2017recomp"
-        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/runtime/Info.plist"
+        BUNDLE_IDENTIFIER "com.jojomortal.pes2017recomp"
+        BUNDLE_NAME "PES17-Launcher"
+        INFO_PLIST "${CMAKE_SOURCE_DIR}/runtime/Info.plist"
         XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "runtime/ios.entitlements"
     )
 endif()
