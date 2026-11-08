@@ -30,11 +30,8 @@
 #include <cstring>
 #include <algorithm>
 #include <filesystem>
+#include <thread>
 #include <vector>
-
-#if defined(__APPLE__)
-#include <dispatch/dispatch.h>
-#endif
 
 namespace install {
     void Initialise();
@@ -193,13 +190,9 @@ int pes17::Run(int argc, char** argv)
     if (!kept.empty()) LOGI("settings: %s", kept.c_str());
 
 #ifdef __APPLE__
-    // DECISAO TECNICA: Usamos a fila assincrona nativa do iOS (Grand Central Dispatch).
-    // Isso garante que o motor rode vinculado ao contexto de Foreground do app ativo,
-    // liberando o bloqueio de Sandbox das pastas publicas.
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-        std::printf("[iOS GCD] Inicializando VFS sob escopo ativo de primeiro plano.\n");
-        install::Initialise();
-    });
+    // Executa a largada de leitura de arquivos de forma basica e direta
+    std::printf("[iOS Main] Acionando o montador de arquivos de jogo.\n");
+    install::Initialise();
     return 0;
 #else
     return 0;
