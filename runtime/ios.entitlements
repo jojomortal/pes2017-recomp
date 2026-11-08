@@ -11,10 +11,13 @@
         <string>com.jojomortal.pes2017recomp</string>
     </array>
     
-    <!-- CHAVES CRÚCIAIS DE LIBERAÇÃO DE PÁGINAS DE MEMÓRIA DINÂMICA (BYPASS PARA INVALID-PAGE) -->
     <key>dynamic-codesigning</key>
     <true/>
     <key>com.apple.private.security.no-container</key>
     <false/>
+
+    <!-- DESBLOQUEIO DE COMPATIBILIDADE DE RAM ESTENDIDA -->
+    <key>com.apple.developer.kernel.increased-memory-limit</key>
+    <true/>
 </dict>
 </plist>
