@@ -2,42 +2,43 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://apple.com">
 <plist version="1.0">
 <dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleDisplayName</key>
+    <string>PES 2017 Launcher</string>
     <key>CFBundleExecutable</key>
     <string>pes17</string>
     <key>CFBundleIdentifier</key>
-    <string>com.community.pes2017recomp</string>
+    <string>com.jojomortal.pes2017recomp</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
     <key>CFBundleName</key>
-    <string>PES17-Launcher</string>
+    <string>pes17</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
     <string>1.0</string>
     <key>CFBundleVersion</key>
-    <string>1.0</string>
-    <key>MinimumOSVersion</key>
-    <string>14.0</string>
+    <string>1</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    
+    <!-- CHAVES ESSENCIAIS: Liberam o compartilhamento de arquivos com o app Files do iOS -->
     <key>UIFileSharingEnabled</key>
     <true/>
     <key>LSSupportsOpeningDocumentsInPlace</key>
     <true/>
+    
     <key>UILaunchStoryboardName</key>
     <string>LaunchScreen</string>
-    <key>UIApplicationSceneManifest</key>
-    <dict>
-        <key>UIApplicationSupportsMultipleScenes</key>
-        <false/>
-        <key>UISceneConfigurations</key>
-        <dict>
-            <key>UIWindowSceneSessionRoleApplication</key>
-            <array>
-                <dict>
-                    <key>UISceneConfigurationName</key>
-                    <string>Default Configuration</string>
-                    <key>UISceneDelegateClassName</key>
-                    <string>PESSceneDelegate</string>
-                </dict>
-            </array>
-        </dict>
-    </dict>
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>arm64</string>
+    </array>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
 </dict>
 </plist>
