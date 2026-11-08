@@ -197,3 +197,12 @@ int pes17::Run(int argc, char** argv)
 
     return 0;
 }
+
+// PONTO DE ENTRADA DO PROGRAMA EXIGIDO PELO LINKER ARM64 DO IOS
+#ifdef __APPLE__
+extern "C" int main(int argc, char* argv[])
+{
+    // Passa o controle de execucao direto para o ciclo nativo do AppDelegate do kernel.mm
+    return inline_uikit_main(argc, argv);
+}
+#endif
