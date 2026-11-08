@@ -7,10 +7,6 @@
 #include <cstdio>
 #include <cstdlib>
 
-#if defined(__APPLE__)
-#include <CoreFoundation/CoreFoundation.h>
-#endif
-
 // Funcoes de baixo nivel exigidas pelo motor para registrar caminhos virtuais (VFS)
 extern "C" {
     __attribute__((visibility("default"))) void VFS_RegisterMount(const char* virtual_path, const char* physical_path);
@@ -19,61 +15,38 @@ extern "C" {
 
 namespace install {
 
-    // Funcao mestre baseada nos maiores ports nativos de Xbox 360 para iOS
+    // Funcao basica e síncrona para montagem do sistema de arquivos virtual
     __attribute__((visibility("default"))) void Initialise() {
         try {
-            std::string caminhoRaizStr = ".";
-
-#if defined(__APPLE__)
-            // ENGENHARIA DE PORT: Busca a rota real e autorizada do Sandbox via CoreFoundation nativo da Apple
-            CFURLRef docsURL =       CFCopyHomeDirectoryURL();
-            if (docsURL) {
-                char pathBuffer[1024];
-                if (CFURLGetFileSystemRepresentation(docsURL, true, (UInt8*)pathBuffer, sizeof(pathBuffer))) {
-                    std::filesystem::path rotaHome(pathBuffer);
-                    std::filesystem::path rotaDocumentos = rotaHome / "Documents/pes/game";
-                    
-                    // Se a subpasta 'game' exigida pelo VFS nao existir, o app cria automaticamente
-                    if (!std::filesystem::exists(rotaDocumentos)) {
-                        std::filesystem::create_directories(rotaDocumentos);
-                    }
-                    caminhoRaizStr = rotaDocumentos.string();
-                }
-                CFRelease(docsURL);
-            }
-#else
-            if (std::filesystem::exists("massa_dados.bin")) {
-                caminhoRaizStr = std::filesystem::current_path().string();
-            } else {
-                std::filesystem::path raizPastaPes = std::filesystem::path(getenv("HOME") ? getenv("HOME") : ".") / "Documents/pes/game";
-                std::filesystem::create_directories(raizPastaPes);
-                caminhoRaizStr = raizPastaPes.string();
-            }
-#endif
+            // No iOS ativo em primeiro plano, o caminho corrente "." aponta diretamente
+            // para a raiz segura do contêiner do aplicativo liberado pelo Info.plist
+            std::filesystem::path rotaAtual = std::filesystem::current_path();
+            std::string caminhoRaizStr = rotaAtual.string();
             
-            std::printf("[iOS Port Nativo VFS] Montando o diretorio Retail de jogo: %s\n", caminhoRaizStr.c_str());
+            std::printf("[iOS VFS Enxuto] Montando o diretorio de dados atual: %s\n", caminhoRaizStr.c_str());
             
-            // Limpa os acessos anteriores do motor do emulador
+            // Limpa mapeamentos antigos para evitar duplicidade de ponteiros de mídia
             VFS_ClearMounts();
             
-            // Mapeia os caminhos logicos do Xbox 360 diretamente para a subpasta do jogo ativa no iPhone
+            // Mapeia os caminhos logicos do motor do jogo diretamente para a rota fisica encontrada
             VFS_RegisterMount("game:/", caminhoRaizStr.c_str());
             VFS_RegisterMount("d:/", caminhoRaizStr.c_str());
             VFS_RegisterMount("cache:/", caminhoRaizStr.c_str());
             VFS_RegisterMount("RETAIL_DISC:/", caminhoRaizStr.c_str());
             
-            // Grava o arquivo de log para confirmar que o VFS ganhou vida
+            // Cria o arquivo de log para validarmos a permissao de escrita e leitura síncrona
             std::string caminhoLogVFS = caminhoRaizStr + "/log_vfs_ios.txt";
             std::ofstream arquivoLog(caminhoLogVFS);
             if (arquivoLog.is_open()) {
                 arquivoLog << "==================================================\n";
-                arquivoLog << "VFS ATIVADO COM SUCESSO COMPROVADO DOS PORTS X360\n";
+                arquivoLog << "VFS ATIVADO: Sucesso na montagem do caminho de dados!\n";
                 arquivoLog << "==================================================\n\n";
-                arquivoLog << "Rota de Leitura de Dados: " << caminhoRaizStr << "\n";
+                arquivoLog << "Rota ativa de execucao: " << caminhoRaizStr << "\n";
                 arquivoLog.close();
+                std::printf("[iOS VFS Enxuto] Arquivo log_vfs_ios.txt gerado com sucesso.\n");
             }
         } catch (...) {
-            std::printf("[iOS VFS ERRO] Falha critica ao tentar montar o VFS nativo.\n");
+            std::printf("[iOS VFS ERRO] Falha ao processar o sistema de arquivos em C++.\n");
         }
     }
 
