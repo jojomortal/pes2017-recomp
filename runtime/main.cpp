@@ -30,10 +30,12 @@
 #include <cstring>
 #include <algorithm>
 #include <filesystem>
-#include <thread>
 #include <vector>
 
-// Declaracao direta para o Linker encontrar o metodo no namespace sem falhas de escopo
+#if defined(__APPLE__)
+#include <dispatch/dispatch.h>
+#endif
+
 namespace install {
     void Initialise();
 }
@@ -162,14 +164,6 @@ namespace
         return n;
 #endif
     }
-
-    // Thread asincrona para rodar a varredura sem congelar o ciclo de vida grafico principal do iOS
-    void MotorJogoIOS()
-    {
-        std::printf("[iOS Motor] Iniciando execucao paralela do VFS de midias do PES.\n");
-        install::Initialise();
-        std::printf("[iOS Motor] VFS e interpretador acionados com sucesso.\n");
-    }
 }
 
 int pes17::Run(int argc, char** argv)
@@ -199,9 +193,13 @@ int pes17::Run(int argc, char** argv)
     if (!kept.empty()) LOGI("settings: %s", kept.c_str());
 
 #ifdef __APPLE__
-    // Inicia a leitura assincrona dos arquivos soltos fora da Main Thread
-    std::thread t_motor(MotorJogoIOS);
-    t_motor.detach();
+    // DECISAO TECNICA: Usamos a fila assincrona nativa do iOS (Grand Central Dispatch).
+    // Isso garante que o motor rode vinculado ao contexto de Foreground do app ativo,
+    // liberando o bloqueio de Sandbox das pastas publicas.
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+        std::printf("[iOS GCD] Inicializando VFS sob escopo ativo de primeiro plano.\n");
+        install::Initialise();
+    });
     return 0;
 #else
     return 0;
