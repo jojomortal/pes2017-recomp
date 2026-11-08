@@ -156,9 +156,8 @@ void platform::Initialise()
     g_appleMainThread = pthread_self();
     std::printf("[iOS platform] Inicializando ambiente Apple Core Foundation.\n");
     
-    // Ignoramos completamente qualquer leitura de sysctl/bootargs legados de desktop
-    // para burlar de forma imediata a trava de seguranca (deny) do Sandbox da Apple
-    std::setenv("PES17_DISABLE_SYSCTL_CHECK", "1", 1);
+    // Corrigido: Chamada de escopo global correta para o desvio de sysctl no iOS
+    setenv("PES17_DISABLE_SYSCTL_CHECK", "1", 1);
 #endif
 }
 
@@ -209,12 +208,12 @@ void platform::PrintBacktrace(const char* why)
 
 namespace
 {
-    struct PosixThreadStart { void (*body)(void*); void* argument; const char* name; };
+    struct PosixThreadStart { void (*body)(void*); void* argument; const char* thread_name; };
     void* RunPosixThread(void* raw)
     {
         PosixThreadStart start = *static_cast<PosixThreadStart*>(raw);
         delete static_cast<PosixThreadStart*>(raw);
-        if (start.name) platform::SetThreadName(start.name);
+        if (start.thread_name) platform::SetThreadName(start.thread_name);
         start.body(start.argument);
         return nullptr;
     }
@@ -242,6 +241,7 @@ bool platform::StartThread(void (*body)(void*), void* argument, size_t stackByte
 
 void* platform::OpenLibrary(const char* path) { return dlopen(path, RTLD_NOW | RTLD_LOCAL); }
 void* platform::LoadedLibrary(const char* name) { return dlopen(nullptr, RTLD_NOW | RTLD_LOCAL); }
-void* platform::Symbol(void* library, const char[64]) { return dlsym(library, name); }
+// Corrigido: Assinatura contendo o nome da variavel 'name' de forma correta
+void* platform::Symbol(void* library, const char* name) { return dlsym(library, name); }
 
 #endif
