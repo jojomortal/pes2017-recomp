@@ -14,7 +14,7 @@
 #else
 #include <climits>
 #include <dlfcn.h>
-#if !defined(__ANDROID__)
+#if !defined(__ANDROID__) && !defined(__APPLE__)
 #include <execinfo.h>
 #endif
 #include <pthread.h>
@@ -55,7 +55,7 @@ bool platform::IsMainThread() { return GetCurrentThreadId() == g_mainThread; }
 
 void platform::SetThreadName(const char* name)
 {
-    wchar_t wide;
+    wchar_t wide[64];
     const int n = MultiByteToWideChar(CP_UTF8, 0, name, -1, wide, 64);
     if (n <= 0) return;
     using SetDescription = HRESULT(WINAPI*)(HANDLE, PCWSTR);
@@ -90,7 +90,7 @@ void platform::SetThreadAffinity(ThreadAffinityRole role)
 
 void platform::PrintBacktrace(const char* why)
 {
-    void* frames;
+    void* frames[64];
     const USHORT n = CaptureStackBackTrace(0, 64, frames, nullptr);
     const auto module = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     std::fprintf(stderr, "\n[E] ---- %s (%u frames) ----\n", why, unsigned(n));
@@ -175,7 +175,7 @@ void platform::SetThreadName(const char* name)
 #if defined(__APPLE__)
     pthread_setname_np(name);
 #else
-    char shortName;
+    char shortName[16];
     std::snprintf(shortName, sizeof shortName, "%s", name);
     pthread_setname_np(pthread_self(), shortName);
 #endif
@@ -197,8 +197,8 @@ void platform::SetThreadAffinity(ThreadAffinityRole role) {}
 
 void platform::PrintBacktrace(const char* why)
 {
-#if !defined(__ANDROID__)
-    void* frames;
+#if !defined(__ANDROID__) && !defined(__APPLE__)
+    void* frames[64];
     int n = backtrace(frames, 64);
     std::fprintf(stderr, "\n[E] ---- %s (%d frames) ----\n", why, n);
     backtrace_symbols_fd(frames, n, STDERR_FILENO);
@@ -244,7 +244,6 @@ void* platform::OpenLibrary(const char* path) { return dlopen(path, RTLD_NOW | R
 void* platform::LoadedLibrary(const char* name) { return dlopen(nullptr, RTLD_NOW | RTLD_LOCAL); }
 void* platform::Symbol(void* library, const char* name) { return dlsym(library, name); }
 
-// Corrigido: Removido o escopo explicito platform:: para bater com o header do VFS do projeto
 extern "C" bool IsDebuggerPresent() { return false; }
 
 #endif
