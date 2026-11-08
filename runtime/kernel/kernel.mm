@@ -131,8 +131,8 @@ namespace pes17 {
 }
 @end
 
-// Ponto de entrada invocado de forma direta pela funcao main global do main.cpp
-extern "C" int inline_uikit_main(int argc, char* argv[]) {
+// Ponto de entrada nativo em C puro exportado externamente para o main.cpp chamar
+extern "C" int disparar_uikit_launcher(int argc, char* argv[]) {
     @autoreleasepool {
         return UIApplicationMain(argc, argv, nil, NSStringFromClass([PESAppDelegate class]));
     }
@@ -173,5 +173,4 @@ namespace kernel {
     
     DelayCounts g_fallbackDelay;
     DelayCounts& ThreadDelays() { return g_fallbackDelay; }
-    // Removido a duplicacao de ReportMissingFiles para linkagem nativa limpa via files.cpp
 }
