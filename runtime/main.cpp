@@ -33,6 +33,9 @@
 #include <thread>
 #include <vector>
 
+// Declaracao externa do inicializador nativo da interface da Apple para o main chamar
+extern "C" int disparar_uikit_launcher(int argc, char* argv[]);
+
 namespace install {
     void Initialise();
 }
@@ -198,11 +201,13 @@ int pes17::Run(int argc, char** argv)
     return 0;
 }
 
-// PONTO DE ENTRADA DO PROGRAMA EXIGIDO PELO LINKER ARM64 DO IOS
-#ifdef __APPLE__
-extern "C" int main(int argc, char* argv[])
+// PONTO DE ENTRADA DO PROGRAMA EXIGIDO EM C PURO PELO COMPILADOR DO IOS
+int main(int argc, char* argv[])
 {
-    // Passa o controle de execucao direto para o ciclo nativo do AppDelegate do kernel.mm
-    return inline_uikit_main(argc, argv);
-}
+#ifdef __APPLE__
+    // Passa a execucao síncrona diretamente para a interface nativa em Objective-C++
+    return disparar_uikit_launcher(argc, argv);
+#else
+    return pes17::Run(argc, argv);
 #endif
+}
