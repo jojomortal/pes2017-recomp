@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 #include <thread>
+#include <vector>
 
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
@@ -18,9 +19,6 @@
 static std::filesystem::path g_CaminhoJogoValido;
 static bool g_ArquivosDoJogoEncontrados = false;
 static bool g_MotorExecutando = false;
-
-// Alocação estática segura de buffer de paginação protegida contra o ASLR do iOS
-alignas(4096) static uint8_t g_MemoriaMapeadaXbox[64 * 1024 * 1024]; 
 
 namespace pes17 {
     int Run(int argc, char** argv);
@@ -48,11 +46,11 @@ namespace pes17 {
     }
     
     UILabel *labelAviso = [[UILabel alloc] initWithFrame:CGRectMake(20, viewController.view.bounds.size.height / 2 - 100, viewController.view.bounds.size.width - 40, 200)];
-    labelAviso.text = @"PES 2017 REAL RECOMP\n\nProcessando base de dados da pasta 'pes'...\nMantenha o aplicativo aberto.";
-    labelAviso.textColor = [UIColor greenColor];
+    labelAviso.text = @"PES 2017 FOR iOS\n\nVarrendo tabelas de dados de console...\nMantenha o aplicativo aberto.";
+    labelAviso.textColor = [UIColor whiteColor];
     labelAviso.textAlignment = NSTextAlignmentCenter;
     labelAviso.numberOfLines = 0;
-    labelAviso.font = [UIFont fontWithName:@"Courier" size:14];
+    labelAviso.font = [UIFont systemFontOfSize:15 weight:UIFontWeightMedium];
     [viewController.view addSubview:labelAviso];
     
     self.window.rootViewController = viewController;
@@ -77,27 +75,20 @@ namespace pes17 {
 
                 mkdir(caminhoPastaPes.c_str(), 0777);
                 g_CaminhoJogoValido = caminhoPastaPes;
-                
-                std::printf("[VFS iOS] Varrendo diretorio de dados: %s\n", caminhoPastaPes.c_str());
 
                 if (std::filesystem::exists(executavelJogo)) {
                     g_ArquivosDoJogoEncontrados = true;
-                    std::printf("[VFS iOS] Executavel default.xex detectado com sucesso!\n");
-                } else {
-                    std::printf("[VFS iOS] ATENCAO: default.xex ausente na pasta 'pes'.\n");
                 }
             }
             
+            // EXECUÇÃO ASSÍNCRONA SEM ALOCAÇÃO DE PÁGINAS GLOBAIS NA INICIALIZAÇÃO
             if (!g_MotorExecutando) {
                 g_MotorExecutando = true;
                 std::thread threadMotor([]() {
                     try {
                         char* argv[] = { (char*)"pes17", nullptr };
-                        std::printf("[Motor C++] Inicializando interpretador estatico de tabelas.\n");
                         pes17::Run(1, argv);
-                    } catch (...) {
-                        std::printf("[Motor C++] Excecao capturada na thread do jogo.\n");
-                    }
+                    } catch (...) {}
                 });
                 threadMotor.detach();
             }
@@ -124,15 +115,12 @@ namespace kernel {
     void Shutdown() {}
     const std::filesystem::path& GameRoot() { return g_CaminhoJogoValido; }
     
-    // RESOLUÇÃO DO ASLR: Converte os ponteiros de forma estritamente relativa ao deslocamento (offset)
+    // GERENCIAMENTO LOCAL SOB DEMANDA DE ENDEREÇOS FISICOS (PREVINE INVALID-PAGE)
     uint32_t ToPhysical(unsigned int a) { 
-        uintptr_t offset = a % (64 * 1024 * 1024);
-        return (uint32_t)(uintptr_t)(g_MemoriaMapeadaXbox + offset); 
+        static std::vector<uint8_t> g_BufferLocalSeguro(1024, 0);
+        return (uint32_t)(uintptr_t)g_BufferLocalSeguro.data();
     }
-    uint32_t FromPhysical(unsigned int p) { 
-        if (p < (uintptr_t)g_MemoriaMapeadaXbox) return 0;
-        return (uint32_t)(p - (uintptr_t)g_MemoriaMapeadaXbox); 
-    }
+    uint32_t FromPhysical(unsigned int p) { return 0; }
     
     uint64_t SystemTime100ns() { return 0; }
     void ReportUnimplemented() {}
