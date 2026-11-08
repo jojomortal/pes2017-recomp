@@ -142,6 +142,8 @@ void* platform::OpenLibrary(const char* path)
 void* platform::LoadedLibrary(const char* name) { return GetModuleHandleA(name); }
 void* platform::Symbol(void* library, const char* name) { return reinterpret_cast<void*>(GetProcAddress(static_cast<HMODULE>(library), name)); }
 
+bool platform::IsDebuggerPresent() { return false; }
+
 #else
 
 // Implementacoes POSIX genericas para iOS/macOS/Linux
@@ -156,7 +158,6 @@ void platform::Initialise()
     g_appleMainThread = pthread_self();
     std::printf("[iOS platform] Inicializando ambiente Apple Core Foundation.\n");
     
-    // Corrigido: Chamada de escopo global correta para o desvio de sysctl no iOS
     setenv("PES17_DISABLE_SYSCTL_CHECK", "1", 1);
 #endif
 }
@@ -241,7 +242,8 @@ bool platform::StartThread(void (*body)(void*), void* argument, size_t stackByte
 
 void* platform::OpenLibrary(const char* path) { return dlopen(path, RTLD_NOW | RTLD_LOCAL); }
 void* platform::LoadedLibrary(const char* name) { return dlopen(nullptr, RTLD_NOW | RTLD_LOCAL); }
-// Corrigido: Assinatura contendo o nome da variavel 'name' de forma correta
 void* platform::Symbol(void* library, const char* name) { return dlsym(library, name); }
+
+bool platform::IsDebuggerPresent() { return false; }
 
 #endif
