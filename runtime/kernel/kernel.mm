@@ -6,13 +6,13 @@
 #include <string>
 #include <thread>
 
-// Importações nativas do ecossistema Apple móvel
+// Importacoes nativas do ecossistema Apple movel
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <QuartzCore/CAMetalLayer.h>
 #import <Metal/Metal.h>
 
-// Cabeçalhos POSIX de baixo nível para criação cirúrgica de pastas
+// Cabecalhos POSIX de baixo nivel para criacao cirurgica de pastas
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -23,12 +23,12 @@ static bool g_MotorExecutando = false;
 static uint8_t* g_MemoriaVirtualConcedida = nullptr;
 static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
 
-// Declaração do motor principal em C++ do PES 2017 para o Launcher dar a largada real
+// Declaracao do motor principal em C++ do PES 2017 para o Launcher dar a largada real
 namespace pes17 {
     int Run(int argc, char** argv);
 }
 
-// 1. Definição do SceneDelegate exigido pelas versões modernas do iOS
+// 1. Definicao do SceneDelegate exigido pelas versoes modernas do iOS
 @interface PESSceneDelegate : UIResponder <UIWindowSceneDelegate>
 @property (strong, nonatomic) UIWindow *window;
 @end
@@ -65,7 +65,7 @@ namespace pes17 {
 }
 @end
 
-// 2. AppDelegate que gerencia o ciclo inicial e a criação forçada da pasta pes/
+// 2. AppDelegate que gerencia o ciclo inicial e a criacao forcada da pasta pes/
 @interface PESAppDelegate : UIResponder <UIApplicationDelegate>
 @end
 
@@ -106,8 +106,8 @@ namespace pes17 {
                 }
             }
             
-            // DISPARO SEGURO DA RECOMPILAÇÃO:
-            // Ativa o motor verdadeiro do PES em uma thread assíncrona dedicada
+            // DISPARO SEGURO DA RECOMPILACAO:
+            // Ativa o motor verdadeiro do PES em uma thread assincrona dedicada
             if (!g_MotorExecutando) {
                 g_MotorExecutando = true;
                 std::thread threadMotor([]() {
@@ -131,7 +131,14 @@ namespace pes17 {
 }
 @end
 
-// Implementação das assinaturas de métodos exigidas pelo kernel.h do projeto
+// Ponto de entrada invocado de forma direta pela funcao main global do main.cpp
+extern "C" int inline_uikit_main(int argc, char* argv[]) {
+    @autoreleasepool {
+        return UIApplicationMain(argc, argv, nil, NSStringFromClass([PESAppDelegate class]));
+    }
+}
+
+// Implementacao das assinaturas de metodos exigidas pelo kernel.h do projeto
 namespace kernel {
     void Initialise(const std::filesystem::path& gameRoot) {
         if (!gameRoot.empty()) {
@@ -164,7 +171,6 @@ namespace kernel {
     __attribute__((visibility("default"))) void MovePlayerData(uint64_t a, uint64_t b, uint64_t c) {}
     __attribute__((visibility("default"))) void QueueUserApc(unsigned int a, unsigned int b, unsigned int c) {}
     
-    // Fallback de monitoramento exigido pelo header para compilação estática limpa
     DelayCounts g_fallbackDelay;
     DelayCounts& ThreadDelays() { return g_fallbackDelay; }
     void ReportMissingFiles() {}
