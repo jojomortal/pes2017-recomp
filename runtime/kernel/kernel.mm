@@ -63,6 +63,12 @@ namespace pes17 {
 
 @implementation PESAppDelegate
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    // PADRÃO DOS PORTS: Inicializa a janela imediatamente e joga o disparo do motor para o proximo ciclo de clock
+    [self performSelector:@selector(dispararMotorJogo) withObject:nil afterDelay:0.5];
+    return YES;
+}
+
+- (void)dispararMotorJogo {
     @autoreleasepool {
         try {
             NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
@@ -81,7 +87,6 @@ namespace pes17 {
                 }
             }
             
-            // EXECUÇÃO ASSÍNCRONA SEM ALOCAÇÃO DE PÁGINAS GLOBAIS NA INICIALIZAÇÃO
             if (!g_MotorExecutando) {
                 g_MotorExecutando = true;
                 std::thread threadMotor([]() {
@@ -95,7 +100,6 @@ namespace pes17 {
             
         } catch (...) {}
     }
-    return YES;
 }
 @end
 
@@ -115,7 +119,6 @@ namespace kernel {
     void Shutdown() {}
     const std::filesystem::path& GameRoot() { return g_CaminhoJogoValido; }
     
-    // GERENCIAMENTO LOCAL SOB DEMANDA DE ENDEREÇOS FISICOS (PREVINE INVALID-PAGE)
     uint32_t ToPhysical(unsigned int a) { 
         static std::vector<uint8_t> g_BufferLocalSeguro(1024, 0);
         return (uint32_t)(uintptr_t)g_BufferLocalSeguro.data();
