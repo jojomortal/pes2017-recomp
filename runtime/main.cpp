@@ -166,13 +166,8 @@ namespace
 int pes17::Run(int argc, char** argv)
 {
 #ifdef __APPLE__
-    // DECISÃO TÉCNICA PRINCIPAL: Invertemos a ordem de execucao.
-    // Forçamos o VFS a montar a pasta publica imediatamente na largada,
-    // antes que o sistema de inputs de hardware barre a thread principal!
     std::printf("[iOS Main] Acionando montagem do VFS de forma prioritaria.\n");
     install::Initialise();
-    
-    // Na sequencia, inicializamos a plataforma base de forma enxuta
     platform::Initialise();
 #else
     platform::Initialise();
@@ -201,3 +196,4 @@ int pes17::Run(int argc, char** argv)
     if (!kept.empty()) LOGI("settings: %s", kept.c_str());
 
     return 0;
+}
