@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
-#include <thread> // Inclusão mestre para controle de Threads nativas em C++
+#include <thread>
 
 // Importações nativas do ecossistema Apple móvel
 #import <UIKit/UIKit.h>
@@ -23,8 +23,10 @@ static bool g_MotorExecutando = false;
 static uint8_t* g_MemoriaVirtualConcedida = nullptr;
 static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
 
-// Declaração externa da função do compilador que inicia a leitura mestre do jogo
-extern "C" void loadFromGuest();
+// Declaração do motor principal em C++ do PES 2017 para o Launcher dar a largada real
+namespace pes17 {
+    int Run(int argc, char** argv);
+}
 
 // 1. Definição do SceneDelegate exigido pelas versões modernas do iOS
 @interface PESSceneDelegate : UIResponder <UIWindowSceneDelegate>
@@ -104,16 +106,20 @@ extern "C" void loadFromGuest();
                 }
             }
             
-            // DISPARO AS SÍNCRONO DA PORTABILIDADE: 
-            // Se os arquivos existirem, abre uma thread paralela dedicada para o motor de leitura trabalhar sem travar a interface da Apple
-            if (g_ArquivosDoJogoEncontrados && !g_MotorExecutando) {
+            // DISPARO SEGURO DA RECOMPILAÇÃO:
+            // Ativa o motor verdadeiro do PES em uma thread assíncrona dedicada
+            if (!g_MotorExecutando) {
                 g_MotorExecutando = true;
                 std::thread threadMotor([]() {
                     try {
-                        loadFromGuest(); // Invoca a leitura em segundo plano do default.xex
-                    } catch (...) {}
+                        // Passamos argumentos limpos e simulados exigidos pelo escopo de pes17::Run
+                        char* argv[] = { (char*)"pes17", nullptr };
+                        pes17::Run(1, argv);
+                    } catch (...) {
+                        std::printf("[iOS Kernel] Erro fatal na execucao paralela do motor.\n");
+                    }
                 });
-                threadMotor.detach(); // Libera a thread para rodar solta em background
+                threadMotor.detach();
             }
             
         } catch (...) {}
@@ -126,12 +132,7 @@ extern "C" void loadFromGuest();
 }
 @end
 
-// GATILHOS DO GUEST
-extern "C" {
-    __attribute__((visibility("default"))) void loadFromGuest() {}
-    __attribute__((visibility("default"))) void _Z13loadFromGuestv() {}
-}
-
+// Interfaces estáticas remanescentes exigidas pelo Linker arm64 nativo
 namespace kernel {
     void Initialise() {}
     void Shutdown() {}
@@ -157,24 +158,5 @@ namespace kernel {
     __attribute__((visibility("default"))) void UpdateTimestampBundle() {}
     __attribute__((visibility("default"))) void AcceptInvite(uint64_t a, uint64_t b, const unsigned char* c, bool d) {}
     __attribute__((visibility("default"))) void MovePlayerData(uint64_t a, uint64_t b, uint64_t c) {}
-    __attribute__((visibility("default"))) void QueueUserApc(unsigned int a, unsigned int b, unsigned int c, const std::function<void()>& d) {}
-}
-
-namespace crash {
-    __attribute__((visibility("default"))) void RegisterThread(char const* a) {}
-    __attribute__((visibility("default"))) void StopHangingMonitor() {}
-    __attribute__((visibility("default"))) char const* CurrentThreadName() { return "Main"; }
-}
-
-namespace engine { void ReportPredicateWaits() {} }
-
-extern "C" {
-    __attribute__((visibility("default"))) void SampleCountEvent(unsigned int a) {}
-    __attribute__((visibility("default"))) void _ZN12_GLOBAL__N_116SampleCountEventEj(unsigned int a) {}
-}
-
-__attribute__((visibility("default"))) int main(int argc, char* argv[]) {
-    @autoreleasepool {
-        return UIApplicationMain(argc, argv, @"UIApplication", NSStringFromClass([PESAppDelegate class]));
-    }
+    __attribute__((visibility("default"))) void QueueUserApc(unsigned int a, unsigned int b, unsigned int c) {}
 }
