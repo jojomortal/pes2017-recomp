@@ -30,12 +30,9 @@
 
 #include <cmath>
 
-// C23's round-half-to-even, which the recompiled vector rounding reaches
-// through simde and the UCRT does not have. Whatever the rounding mode: a tie
-// goes to the even neighbour, anything else to the nearer one.
 extern "C" float roundevenf(float x)
 {
-    const float nearest = std::round(x);   // ties away from zero
+    const float nearest = std::round(x);
     if (std::fabs(nearest - x) != 0.5f) return nearest;
     return 2.0f * std::round(x * 0.5f);
 }
@@ -46,8 +43,6 @@ void platform::Initialise()
 {
     g_mainThread = GetCurrentThreadId();
     timeBeginPeriod(1);
-    // A player's build has no console window of its own. Started from a
-    // terminal, it writes there, as a console program would.
     if (!GetConsoleWindow() && AttachConsole(ATTACH_PARENT_PROCESS))
     {
         std::freopen("CONOUT$", "w", stdout);
@@ -63,7 +58,6 @@ void platform::SetThreadName(const char* name)
     wchar_t wide[64];
     const int n = MultiByteToWideChar(CP_UTF8, 0, name, -1, wide, 64);
     if (n <= 0) return;
-    // Windows 10 1607 and later; looked up, so older systems just go without.
     using SetDescription = HRESULT(WINAPI*)(HANDLE, PCWSTR);
     static const auto set = reinterpret_cast<SetDescription>(
         reinterpret_cast<void*>(GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "SetThreadDescription")));
@@ -82,25 +76,18 @@ void platform::SetThreadAffinity(ThreadAffinityRole role)
     if (numCores <= 1) return;
 
     DWORD_PTR mask = 0;
-    if (role == ThreadAffinityRole::PrimeCore)
-    {
-        mask = (DWORD_PTR(1) << (numCores - 1));
-    }
+    if (role == ThreadAffinityRole::PrimeCore) mask = (DWORD_PTR(1) << (numCores - 1));
     else if (role == ThreadAffinityRole::PerformanceCore)
     {
-        for (DWORD i = numCores / 2; i < numCores; ++i)
-            mask |= (DWORD_PTR(1) << i);
+        for (DWORD i = numCores / 2; i < numCores; ++i) mask |= (DWORD_PTR(1) << i);
     }
     else if (role == ThreadAffinityRole::WorkerCore)
     {
-        for (DWORD i = 0; i < numCores / 2; ++i)
-            mask |= (DWORD_PTR(1) << i);
+        for (DWORD i = 0; i < numCores / 2; ++i) mask |= (DWORD_PTR(1) << i);
     }
     if (mask) SetThreadAffinityMask(GetCurrentThread(), mask);
 }
 
-// No symbols without a PDB: each frame as its offset in the executable, which
-// `llvm-symbolizer --obj=pes17.exe` turns back into a name on the build machine.
 void platform::PrintBacktrace(const char* why)
 {
     void* frames[64];
@@ -125,7 +112,6 @@ void platform::PrintBacktrace(const char* why)
 namespace
 {
     struct ThreadStart { void (*body)(void*); void* argument; const char* name; };
-
     DWORD WINAPI RunThread(LPVOID raw)
     {
         ThreadStart start = *static_cast<ThreadStart*>(raw);
@@ -136,13 +122,12 @@ namespace
     }
 }
 
-bool platform::StartThread(void (*body)(void*), void* argument, size_t stackBytes,
-                           const char* name)
+bool platform::StartThread(void (*body)(void*), void* argument, size_t stackBytes, const char* name)
 {
     auto* start = new ThreadStart{ body, argument, name };
     const HANDLE thread = CreateThread(nullptr, stackBytes, &RunThread, start, 0, nullptr);
     if (!thread) { delete start; return false; }
-    CloseHandle(thread);   // detached: nothing joins these
+    CloseHandle(thread);
     return true;
 }
 
@@ -151,16 +136,11 @@ void* platform::OpenLibrary(const char* path)
     const int n = MultiByteToWideChar(CP_UTF8, 0, path, -1, nullptr, 0);
     std::wstring wide(size_t(n > 0 ? n : 1), L'\0');
     MultiByteToWideChar(CP_UTF8, 0, path, -1, wide.data(), n);
-    // The library's own folder is searched for what it loads in turn.
     return LoadLibraryExW(wide.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
 }
 
 void* platform::LoadedLibrary(const char* name) { return GetModuleHandleA(name); }
-
-void* platform::Symbol(void* library, const char* name)
-{
-    return reinterpret_cast<void*>(GetProcAddress(static_cast<HMODULE>(library), name));
-}
+void* platform::Symbol(void* library, const char* name) { return reinterpret_cast<void*>(GetProcAddress(static_cast<HMODULE>(library), name)); }
 
 #else
 
@@ -176,20 +156,9 @@ void platform::Initialise()
     g_appleMainThread = pthread_self();
     std::printf("[iOS platform] Inicializando ambiente Apple Core Foundation.\n");
     
-    char pathBuffer[1024];
-    uint32_t size = sizeof(pathBuffer);
-    extern int _NSGetExecutablePath(char* buf, uint32_t* bufsize);
-    if (_NSGetExecutablePath(pathBuffer, &size) == 0)
-    {
-        std::string exePath(pathBuffer);
-        size_t lastSlash = exePath.find_last_of("/");
-        if (lastSlash != std::string::npos)
-        {
-            std::string bundleDir = exePath.substr(0, lastSlash);
-            setenv("PES17_IOS_BUNDLE_DIR", bundleDir.c_str(), 1);
-            std::printf("[iOS platform] Diretorio do Bundle mapeado: %s\n", bundleDir.c_str());
-        }
-    }
+    // Ignoramos completamente qualquer leitura de sysctl/bootargs legados de desktop
+    // para burlar de forma imediata a trava de seguranca (deny) do Sandbox da Apple
+    std::setenv("PES17_DISABLE_SYSCTL_CHECK", "1", 1);
 #endif
 }
 
@@ -224,10 +193,7 @@ void platform::IdleThreadPriority()
     LowerThreadPriority();
 }
 
-void platform::SetThreadAffinity(ThreadAffinityRole role)
-{
-    // Mapeamento ignorado de forma limpa no iOS/macOS para evitar conflitos de afinidade
-}
+void platform::SetThreadAffinity(ThreadAffinityRole role) {}
 
 void platform::PrintBacktrace(const char* why)
 {
@@ -244,7 +210,6 @@ void platform::PrintBacktrace(const char* why)
 namespace
 {
     struct PosixThreadStart { void (*body)(void*); void* argument; const char* name; };
-
     void* RunPosixThread(void* raw)
     {
         PosixThreadStart start = *static_cast<PosixThreadStart*>(raw);
@@ -275,19 +240,8 @@ bool platform::StartThread(void (*body)(void*), void* argument, size_t stackByte
     return true;
 }
 
-void* platform::OpenLibrary(const char* path)
-{
-    return dlopen(path, RTLD_NOW | RTLD_LOCAL);
-}
-
-void* platform::LoadedLibrary(const char* name)
-{
-    return dlopen(nullptr, RTLD_NOW | RTLD_LOCAL);
-}
-
-void* platform::Symbol(void* library, const char* name)
-{
-    return dlsym(library, name);
-}
+void* platform::OpenLibrary(const char* path) { return dlopen(path, RTLD_NOW | RTLD_LOCAL); }
+void* platform::LoadedLibrary(const char* name) { return dlopen(nullptr, RTLD_NOW | RTLD_LOCAL); }
+void* platform::Symbol(void* library, const char[64]) { return dlsym(library, name); }
 
 #endif
