@@ -165,7 +165,18 @@ namespace
 
 int pes17::Run(int argc, char** argv)
 {
+#ifdef __APPLE__
+    // DECISÃO TÉCNICA PRINCIPAL: Invertemos a ordem de execucao.
+    // Forçamos o VFS a montar a pasta publica imediatamente na largada,
+    // antes que o sistema de inputs de hardware barre a thread principal!
+    std::printf("[iOS Main] Acionando montagem do VFS de forma prioritaria.\n");
+    install::Initialise();
+    
+    // Na sequencia, inicializamos a plataforma base de forma enxuta
     platform::Initialise();
+#else
+    platform::Initialise();
+#endif
 
     const std::string kept = settings::Load(install::Folder(argc, argv) / ".env");
 
@@ -189,12 +200,4 @@ int pes17::Run(int argc, char** argv)
     LOGI("--- PES 2017 recompilation runtime (%s) ---", PES17_TITLE_NAME);
     if (!kept.empty()) LOGI("settings: %s", kept.c_str());
 
-#ifdef __APPLE__
-    // Executa a largada de leitura de arquivos de forma basica e direta
-    std::printf("[iOS Main] Acionando o montador de arquivos de jogo.\n");
-    install::Initialise();
     return 0;
-#else
-    return 0;
-#endif
-}
