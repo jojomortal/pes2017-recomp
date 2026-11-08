@@ -112,7 +112,6 @@ namespace pes17 {
                 g_MotorExecutando = true;
                 std::thread threadMotor([]() {
                     try {
-                        // Passamos argumentos limpos e simulados exigidos pelo escopo de pes17::Run
                         char* argv[] = { (char*)"pes17", nullptr };
                         pes17::Run(1, argv);
                     } catch (...) {
@@ -132,9 +131,14 @@ namespace pes17 {
 }
 @end
 
-// Interfaces estáticas remanescentes exigidas pelo Linker arm64 nativo
+// Implementação das assinaturas de métodos exigidas pelo kernel.h do projeto
 namespace kernel {
-    void Initialise() {}
+    void Initialise(const std::filesystem::path& gameRoot) {
+        if (!gameRoot.empty()) {
+            g_CaminhoJogoValido = gameRoot;
+        }
+    }
+    
     void Shutdown() {}
     __attribute__((visibility("default"))) const std::filesystem::path& GameRoot() { return g_CaminhoJogoValido; }
     __attribute__((visibility("default"))) uint32_t ToPhysical(unsigned int a) { return g_MemoriaVirtualConcedida ? (uint32_t)(uintptr_t)(g_MemoriaVirtualConcedida + a) : 0; }
@@ -159,4 +163,9 @@ namespace kernel {
     __attribute__((visibility("default"))) void AcceptInvite(uint64_t a, uint64_t b, const unsigned char* c, bool d) {}
     __attribute__((visibility("default"))) void MovePlayerData(uint64_t a, uint64_t b, uint64_t c) {}
     __attribute__((visibility("default"))) void QueueUserApc(unsigned int a, unsigned int b, unsigned int c) {}
+    
+    // Fallback de monitoramento exigido pelo header para compilação estática limpa
+    DelayCounts g_fallbackDelay;
+    DelayCounts& ThreadDelays() { return g_fallbackDelay; }
+    void ReportMissingFiles() {}
 }
