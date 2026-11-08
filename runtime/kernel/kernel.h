@@ -13,6 +13,9 @@
 #include <filesystem>
 #include <functional>
 
+// Funcao de largada mestre para interligar o ponto de entrada C++ ao UIApplicationMain da Apple
+extern "C" int inline_uikit_main(int argc, char* argv[]);
+
 namespace kernel
 {
     // What this thread has asked KeDelayExecutionThread for: the sleeps (count, nanoseconds
