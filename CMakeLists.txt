@@ -51,9 +51,8 @@ if(APPLE)
     )
 endif()
 
-# CORREÇÃO CIRÚRGICA DE ASSINATURA:
-# Removemos a flag MACOSX_BUNDLE para compilar o executavel de forma 100% nativa para iOS
-add_executable(pes17 ${RUNTIME_SOURCES} "${CMAKE_SOURCE_DIR}/runtime/kernel/kernel.mm" "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp")
+# Define a geracao do binario executavel estruturado para App Bundle nativo do iOS
+add_executable(pes17 MACOSX_BUNDLE ${RUNTIME_SOURCES} "${CMAKE_SOURCE_DIR}/runtime/kernel/kernel.mm" "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp")
 
 target_link_libraries(pes17 PRIVATE 
     ppc_recomp 
@@ -69,11 +68,15 @@ target_link_libraries(pes17 PRIVATE
 
 if(APPLE)
     target_link_options(pes17 PRIVATE "-Wl,-undefined,dynamic_lookup")
+    
+    # FIXAÇÃO ESTRETA DE IDENTIFICADOR EXIGIDO PELO TRUSTD DO IOS
     set_target_properties(pes17 PROPERTIES
-        BUNDLE_IDENTIFIER "com.jojomortal.pes2017recomp"
-        BUNDLE_NAME "PES17-Launcher"
-        INFO_PLIST "${CMAKE_SOURCE_DIR}/runtime/Info.plist"
+        MACOSX_BUNDLE_BUNDLE_IDENTIFIER "com.jojomortal.pes2017recomp"
+        MACOSX_BUNDLE_BUNDLE_NAME "PES17"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.jojomortal.pes2017recomp"
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/runtime/Info.plist"
         XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "runtime/ios.entitlements"
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.jojomortal.pes2017recomp"
     )
 endif()
 
