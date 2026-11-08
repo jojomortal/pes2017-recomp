@@ -173,5 +173,5 @@ namespace kernel {
     
     DelayCounts g_fallbackDelay;
     DelayCounts& ThreadDelays() { return g_fallbackDelay; }
-    void ReportMissingFiles() {}
+    // Removido a duplicacao de ReportMissingFiles para linkagem nativa limpa via files.cpp
 }
