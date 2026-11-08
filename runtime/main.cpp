@@ -33,7 +33,10 @@
 #include <thread>
 #include <vector>
 
-// Declaracao externa do inicializador nativo da interface da Apple para o main chamar
+#if !defined(_WIN32)
+#include <signal.h>
+#endif
+
 extern "C" int disparar_uikit_launcher(int argc, char* argv[]);
 
 namespace install {
@@ -169,7 +172,15 @@ namespace
 int pes17::Run(int argc, char** argv)
 {
 #ifdef __APPLE__
-    std::printf("[iOS Main] Acionando montagem do VFS de forma prioritaria.\n");
+    // BYPASS DE SINAIS DE DEPURAÇÃO: Forçamos o silenciamento das chamadas de interrupcao de hardware (0x91 / 486).
+    // Isso remove totalmente qualquer dependencia de JIT ou ferramentas como stickdebug.
+    struct sigaction sa{};
+    sa.sa_handler = SIG_IGN;
+    sigaction(SIGTRAP, &sa, nullptr);
+    sigaction(SIGBUS, &sa, nullptr);
+    sigaction(SIGILL, &sa, nullptr);
+
+    std::printf("[iOS Main] Sinais de interrupcao silenciados. Acionando montagem do VFS.\n");
     install::Initialise();
     platform::Initialise();
 #else
@@ -201,11 +212,9 @@ int pes17::Run(int argc, char** argv)
     return 0;
 }
 
-// PONTO DE ENTRADA DO PROGRAMA EXIGIDO EM C PURO PELO COMPILADOR DO IOS
 int main(int argc, char* argv[])
 {
 #ifdef __APPLE__
-    // Passa a execucao síncrona diretamente para a interface nativa em Objective-C++
     return disparar_uikit_launcher(argc, argv);
 #else
     return pes17::Run(argc, argv);
