@@ -12,9 +12,10 @@
 #import <QuartzCore/CAMetalLayer.h>
 #import <Metal/Metal.h>
 
-// Cabecalhos POSIX de baixo nivel para criacao cirurgica de pastas
+// Cabecalhos POSIX de baixo nivel para gerenciamento de memoria virtual e pastas
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/mman.h>
 #include <unistd.h>
 
 static std::filesystem::path g_CaminhoJogoValido;
@@ -23,12 +24,10 @@ static bool g_MotorExecutando = false;
 static uint8_t* g_MemoriaVirtualConcedida = nullptr;
 static const uint64_t g_TamanhoMemoriaXbox = 512 * 1024 * 1024;
 
-// Declaracao do motor principal em C++ do PES 2017 para o Launcher dar a largada real
 namespace pes17 {
     int Run(int argc, char** argv);
 }
 
-// 1. Definicao do SceneDelegate exigido pelas versoes modernas do iOS
 @interface PESSceneDelegate : UIResponder <UIWindowSceneDelegate>
 @property (strong, nonatomic) UIWindow *window;
 @end
@@ -65,7 +64,6 @@ namespace pes17 {
 }
 @end
 
-// 2. AppDelegate que gerencia o ciclo inicial e a criacao forcada da pasta pes/
 @interface PESAppDelegate : UIResponder <UIApplicationDelegate>
 @end
 
@@ -99,15 +97,18 @@ namespace pes17 {
                 }
             }
             
+            // DECISÃO TÉCNICA PRINCIPAL: Substitui malloc por mmap protegido por MAP_ANONYMOUS.
+            // Isso evita a falha SIGSEGV de segmentacao de memoria na largada.
             if (!g_MemoriaVirtualConcedida) {
-                g_MemoriaVirtualConcedida = (uint8_t*)malloc(g_TamanhoMemoriaXbox);
-                if (g_MemoriaVirtualConcedida) {
-                    memset(g_MemoriaVirtualConcedida, 0, g_TamanhoMemoriaXbox);
+                g_MemoriaVirtualConcedida = (uint8_t*)mmap(nullptr, g_TamanhoMemoriaXbox, 
+                                                           PROT_READ | PROT_WRITE, 
+                                                           MAP_PRIVATE | MAP_ANON, -1, 0);
+                if (g_MemoriaVirtualConcedida == MAP_FAILED) {
+                    g_MemoriaVirtualConcedida = nullptr;
+                    std::printf("[iOS Kernel ERRO] Falha ao alocar mmap para o PES.\n");
                 }
             }
             
-            // DISPARO SEGURO DA RECOMPILACAO:
-            // Ativa o motor verdadeiro do PES em uma thread assincrona dedicada
             if (!g_MotorExecutando) {
                 g_MotorExecutando = true;
                 std::thread threadMotor([]() {
@@ -131,14 +132,12 @@ namespace pes17 {
 }
 @end
 
-// Ponto de entrada nativo em C puro exportado externamente para o main.cpp chamar
-extern "C" int disparar_uikit_launcher(int argc, char* argv[]) {
+extern "C" int inline_uikit_main(int argc, char* argv[]) {
     @autoreleasepool {
         return UIApplicationMain(argc, argv, nil, NSStringFromClass([PESAppDelegate class]));
     }
 }
 
-// Implementacao das assinaturas de metodos exigidas pelo kernel.h do projeto
 namespace kernel {
     void Initialise(const std::filesystem::path& gameRoot) {
         if (!gameRoot.empty()) {
