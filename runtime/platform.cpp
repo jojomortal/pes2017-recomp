@@ -244,6 +244,7 @@ void* platform::OpenLibrary(const char* path) { return dlopen(path, RTLD_NOW | R
 void* platform::LoadedLibrary(const char* name) { return dlopen(nullptr, RTLD_NOW | RTLD_LOCAL); }
 void* platform::Symbol(void* library, const char* name) { return dlsym(library, name); }
 
+// Corrigido: Assinatura explicitamente vinculada ao escopo do namespace correto no bloco POSIX
 bool platform::IsDebuggerPresent() { return false; }
 
 #endif
