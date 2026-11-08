@@ -63,7 +63,6 @@ namespace pes17 {
 
 @implementation PESAppDelegate
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    // PADRÃO DOS PORTS: Inicializa a janela imediatamente e joga o disparo do motor para o proximo ciclo de clock
     [self performSelector:@selector(dispararMotorJogo) withObject:nil afterDelay:0.5];
     return YES;
 }
@@ -119,12 +118,15 @@ namespace kernel {
     void Shutdown() {}
     const std::filesystem::path& GameRoot() { return g_CaminhoJogoValido; }
     
+    // Alocação dinâmica heap-safe para evitar violações de integridade estática no linker do iOS
     uint32_t ToPhysical(unsigned int a) { 
-        static std::vector<uint8_t> g_BufferLocalSeguro(1024, 0);
-        return (uint32_t)(uintptr_t)g_BufferLocalSeguro.data();
+        static std::vector<uint8_t>* g_MesaVirtualXbox = new std::vector<uint8_t>(4 * 1024 * 1024, 0);
+        uintptr_t basePtr = (uintptr_t)g_MesaVirtualXbox->data();
+        uintptr_t offset = a % (4 * 1024 * 1024);
+        return (uint32_t)(basePtr + offset);
     }
-    uint32_t FromPhysical(unsigned int p) { return 0; }
     
+    uint32_t FromPhysical(unsigned int p) { return 0; }
     uint64_t SystemTime100ns() { return 0; }
     void ReportUnimplemented() {}
     void ReportAllocRate() {}
