@@ -244,7 +244,9 @@ void* platform::OpenLibrary(const char* path) { return dlopen(path, RTLD_NOW | R
 void* platform::LoadedLibrary(const char* name) { return dlopen(nullptr, RTLD_NOW | RTLD_LOCAL); }
 void* platform::Symbol(void* library, const char* name) { return dlsym(library, name); }
 
-// CASAMENTO DE ESCOPO COMPATIVEL: Implementada estritamente dentro do namespace correto para o linker do iOS
-bool platform::IsDebuggerPresent() { return false; }
+// Envelopamento correto do namespace exigido pelo compilador Apple para a condicional POSIX
+namespace platform {
+    bool IsDebuggerPresent() { return false; }
+}
 
 #endif
