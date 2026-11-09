@@ -11,7 +11,17 @@ namespace diag {
     inline void Initialise() {}
     inline void Shutdown() {}
 
-    // Assinaturas exatas com os argumentos esperados pelo motor original (Clean Room Design)
+    // ESTRUTURAS EXIGIDAS PELO CONSOLE E PROCESSADOR DE COMANDOS DA GPU
+    struct Stat {
+        uint64_t count = 0;
+        uint64_t total = 0;
+    };
+
+    struct Counter {
+        uint64_t value = 0;
+    };
+
+    // Assinaturas exatas com os argumentos esperados pelo motor original
     inline const char* Text(const char* name, const char* fallback = nullptr) {
         return fallback;
     }
