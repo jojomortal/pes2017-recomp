@@ -20,21 +20,6 @@
 #include <sys/sysctl.h>
 #include <dlfcn.h>
 
-// INJEÇÃO ESTÁTICA EXCLUSIVA (GABARITO RECOMP IOS): Intercepta chamadas de hardware profundas de todas as dylibs
-extern "C" int sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen) {
-    if (oldlenp) {
-        *oldlenp = 0; 
-    }
-    return 0; 
-}
-
-extern "C" int sysctlbyname(const char *name, void *oldp, size_t *oldlenp, void *newp, size_t newlen) {
-    if (oldlenp) {
-        *oldlenp = 0;
-    }
-    return 0; 
-}
-
 static std::filesystem::path g_CaminhoBaseDocumentos;
 static bool g_IniciadorAtivo = false;
 
@@ -96,7 +81,7 @@ namespace pes17 {
                 std::string stringDocs = [caminhoDocsApple UTF8String];
                 std::string subPastaPes = stringDocs + "/pes";
                 
-                // CRIAÇÃO IMEDIATA DA PASTA NO LAUNCH: Cria o Sandbox antes de instanciar a thread paralela
+                // CRIAÇÃO PASTA NO LAUNCH: Estabelece o Sandbox do jogo de forma imediata
                 mkdir(subPastaPes.c_str(), 0777);
                 g_CaminhoBaseDocumentos = subPastaPes;
             }
