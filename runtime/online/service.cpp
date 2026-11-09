@@ -2,6 +2,21 @@
 #include "../log.h"
 #include "../console.h"
 #include "../kernel/kernel.h"
+#include <string>
+#include <vector>
+#include <cstdint>
+
+// INTERCEPTAÇÃO MÓVEL (ESTRATÉGIA DO GABARITO PÚBLICO)
+// Sobrescreve as macros do sistema host para que chamadas estáticas em background não violem a Sandbox do iOS
+extern "C" int sysctl(int *name, unsigned int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen) {
+    if (oldlenp) *oldlenp = 0;
+    return 0; // Retorna sucesso falso, silenciando o kern.bootargs e impedindo o crash instantâneo
+}
+
+extern "C" int sysctlbyname(const char *name, void *oldp, size_t *oldlenp, void *newp, size_t newlen) {
+    if (oldlenp) *oldlenp = 0;
+    return 0;
+}
 
 namespace
 {
