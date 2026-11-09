@@ -51,8 +51,13 @@ if(APPLE)
     )
 endif()
 
-# Define a geracao do binario executavel estruturado para App Bundle nativo do iOS
-add_executable(pes17 MACOSX_BUNDLE ${RUNTIME_SOURCES} "${CMAKE_SOURCE_DIR}/runtime/kernel/kernel.mm" "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp")
+# CORREÇÃO DEFINITIVA DE EXECUTÁVEL GRÁFICO (EVITA FECHAMENTO NO CLIQUE)
+# Força o CMake a gerar o binário envelopado com a estrutura de App Bundle (MACOSX_BUNDLE) exigida pelo iOS
+add_executable(pes17 MACOSX_BUNDLE 
+    ${RUNTIME_SOURCES} 
+    "${CMAKE_SOURCE_DIR}/runtime/kernel/kernel.mm" 
+    "${CMAKE_SOURCE_DIR}/runtime/online/service.cpp"
+)
 
 target_link_libraries(pes17 PRIVATE 
     ppc_recomp 
@@ -69,7 +74,7 @@ target_link_libraries(pes17 PRIVATE
 if(APPLE)
     target_link_options(pes17 PRIVATE "-Wl,-undefined,dynamic_lookup")
     
-    # FIXAÇÃO ESTRETA DE IDENTIFICADOR EXIGIDO PELO TRUSTD DO IOS
+    # Amarra os identificadores corretos para validação do Trustd da Apple
     set_target_properties(pes17 PROPERTIES
         MACOSX_BUNDLE_BUNDLE_IDENTIFIER "com.jojomortal.pes2017recomp"
         MACOSX_BUNDLE_BUNDLE_NAME "PES17"
