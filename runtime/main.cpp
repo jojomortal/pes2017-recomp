@@ -33,11 +33,7 @@
 #include <thread>
 #include <vector>
 
-#if !defined(_WIN32)
-#include <signal.h>
-#endif
-
-extern "C" int disparar_uikit_launcher(int argc, char* argv[]);
+extern "C" int inline_uikit_main(int argc, char* argv[]);
 
 namespace install {
     void Initialise();
@@ -171,19 +167,9 @@ namespace
 
 int pes17::Run(int argc, char** argv)
 {
-#ifdef __APPLE__
-    // BYPASS DE SINAIS DE DEPURAÇÃO: Forçamos o silenciamento das chamadas de interrupcao de hardware (0x91 / 486).
-    // Isso remove totalmente qualquer dependencia de JIT ou ferramentas como stickdebug.
-    struct sigaction sa{};
-    sa.sa_handler = SIG_IGN;
-    sigaction(SIGTRAP, &sa, nullptr);
-    sigaction(SIGBUS, &sa, nullptr);
-    sigaction(SIGILL, &sa, nullptr);
-
-    std::printf("[iOS Main] Sinais de interrupcao silenciados. Acionando montagem do VFS.\n");
-    install::Initialise();
-    platform::Initialise();
-#else
+    // CORTA O COMPORTAMENTO DE DESKTOP: No iOS, ignoramos o platform::Initialise comum
+    // para evitar chamadas sysctl-read kern.bootargs barradas pelo Sandbox da Apple
+#ifndef __APPLE__
     platform::Initialise();
 #endif
 
@@ -215,7 +201,8 @@ int pes17::Run(int argc, char** argv)
 int main(int argc, char* argv[])
 {
 #ifdef __APPLE__
-    return disparar_uikit_launcher(argc, argv);
+    // Envia o fluxo sincronizado diretamente para a interface nativa estável do Objective-C++
+    return inline_uikit_main(argc, argv);
 #else
     return pes17::Run(argc, argv);
 #endif
