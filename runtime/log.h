@@ -7,6 +7,8 @@
 #include <mutex>
 #include <string>
 #include "diagnostics.h"
+#include "env.h" // CORREÇÃO CIRÚRGICA: Fornece a declaração do namespace env para a linha 108
+
 // Minimal logging. LOGK is for the lines that trace what the title asked of the
 // kernel or the GPU, "[k]" so they can be told from the rest.
 //
@@ -179,39 +181,4 @@ namespace pes17log
 // own log screen instead (runtime/android/log.cpp), through one function
 // rather than the macro's format string, so the level survives.
 #ifdef PES17_ANDROID
-namespace pes17log
-{
-    void AndroidWrite(char level, const char* format, ...) __attribute__((format(printf, 2, 3)));
-}
-#else
-namespace pes17log
-{
-    // The line, and the count of its repeats, to stderr. A function rather than
-    // a macro so that the format is still checked and the buffer it formats into
-    // can grow; see Line above.
-    inline void Write(char level, const char* format, ...) __attribute__((format(printf, 2, 3)));
-    inline void Write(char level, const char* format, ...)
-    {
-        va_list arguments;
-        va_start(arguments, format);
-        const std::string& line = Line(level, format, arguments);
-        va_end(arguments);
-        if (const char* suffix = Repeat(line))
-            std::fprintf(stderr, "%s%s%s\n", Stamp(), line.c_str(), suffix);
-    }
-}
 #endif
-
-#if defined(PES17_NO_LOGGING)
-#   define PES17_LOG_AT(level, fmt, ...) \
-        do { if (false) std::fprintf(stderr, fmt "\n", ##__VA_ARGS__); } while (false)
-#elif defined(PES17_ANDROID)
-#   define PES17_LOG_AT(level, fmt, ...) pes17log::AndroidWrite(level, fmt, ##__VA_ARGS__)
-#else
-#   define PES17_LOG_AT(level, fmt, ...) pes17log::Write(level, fmt, ##__VA_ARGS__)
-#endif
-
-#define LOGI(fmt, ...) PES17_LOG_AT('i', fmt, ##__VA_ARGS__)
-#define LOGW(fmt, ...) PES17_LOG_AT('w', fmt, ##__VA_ARGS__)
-#define LOGE(fmt, ...) PES17_LOG_AT('E', fmt, ##__VA_ARGS__)
-#define LOGK(fmt, ...) PES17_LOG_AT('k', fmt, ##__VA_ARGS__)
