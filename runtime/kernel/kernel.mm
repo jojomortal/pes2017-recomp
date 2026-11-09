@@ -7,86 +7,92 @@
 #include <thread>
 #include <vector>
 
+// Frameworks graficos e de sistema homologados para aplicacoes nativas iOS
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <QuartzCore/CAMetalLayer.h>
 #import <Metal/Metal.h>
 
+// APIs POSIX nativas para gerenciamento de pastas e Sandbox
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
-static std::filesystem::path g_CaminhoJogoValido;
-static bool g_ArquivosDoJogoEncontrados = false;
-static bool g_MotorExecutando = false;
+static std::filesystem::path g_CaminhoBaseDocumentos;
+static bool g_IniciadorAtivo = false;
 
 namespace pes17 {
     int Run(int argc, char** argv);
 }
 
-@interface PESViewController : UIViewController
+// Interface do Controlador de Tela Nativo em Objective-C++
+@interface PESMainViewController : UIViewController
 @end
 
-@implementation PESViewController
+@implementation PESMainViewController
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.view.backgroundColor = [UIColor blackColor];
     
-    id<MTLDevice> device = MTLCreateSystemDefaultDevice();
-    if (device) {
-        CAMetalLayer *metalLayer = [CAMetalLayer layer];
-        metalLayer.device = device;
-        metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
-        metalLayer.frame = self.view.bounds;
-        [self.view.layer addSublayer:metalLayer];
+    id<MTLDevice> dispositivoMetal = MTLCreateSystemDefaultDevice();
+    if (dispositivoMetal) {
+        CAMetalLayer *camadaGrafica = [CAMetalLayer layer];
+        camadaGrafica.device = dispositivoMetal;
+        camadaGrafica.pixelFormat = MTLPixelFormatBGRA8Unorm;
+        camadaGrafica.frame = self.view.bounds;
+        [self.view.layer addSublayer:camadaGrafica];
     }
     
-    UILabel *labelAviso = [[UILabel alloc] initWithFrame:CGRectMake(20, self.view.bounds.size.height / 2 - 100, self.view.bounds.size.width - 40, 200)];
-    labelAviso.text = @"PES 2017 iOS RECOMP\n\nInicializando o motor grafico nativo...\nAguardando leitura da pasta 'pes'.";
-    labelAviso.textColor = [UIColor greenColor];
-    labelAviso.textAlignment = NSTextAlignmentCenter;
-    labelAviso.numberOfLines = 0;
-    labelAviso.font = [UIFont fontWithName:@"Courier" size:16];
-    [self.view addSubview:labelAviso];
+    UILabel *rotuloStatus = [[UILabel alloc] initWithFrame:CGRectMake(20, self.view.bounds.size.height / 2 - 80, self.view.bounds.size.width - 40, 160)];
+    rotuloStatus.text = @"PES 17 MÓVEL\n\nSincronizando tabelas do VFS de console...\nMantenha o aplicativo aberto.";
+    rotuloStatus.textColor = [UIColor greenColor];
+    rotuloStatus.textAlignment = NSTextAlignmentCenter;
+    rotuloStatus.numberOfLines = 0;
+    rotuloStatus.font = [UIFont fontWithName:@"HelveticaNeue-Bold" size:15];
+    [self.view addSubview:rotuloStatus];
 }
 @end
 
-@interface PESSceneDelegate : UIResponder <UIWindowSceneDelegate>
+// Delegado de Cena obrigatorio para conformidade visual com o iOS
+@interface PESMainSceneDelegate : UIResponder <UIWindowSceneDelegate>
 @property (strong, nonatomic) UIWindow *window;
 @end
 
-@implementation PESSceneDelegate
-- (void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)connectionOptions {
+@implementation PESMainSceneDelegate
+- (void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)options {
     UIWindowScene *windowScene = (UIWindowScene *)scene;
     self.window = [[UIWindow alloc] initWithWindowScene:windowScene];
-    self.window.rootViewController = [[PESViewController alloc] init];
+    self.window.rootViewController = [[PESMainViewController alloc] init];
     [self.window makeKeyAndVisible];
 }
 @end
 
-@interface PESAppDelegate : UIResponder <UIApplicationDelegate>
+// Delegado Principal da Aplicacao responsavel pelo bypass de Sandbox
+@interface PESMainAppDelegate : UIResponder <UIApplicationDelegate>
 @end
 
-@implementation PESAppDelegate
+@implementation PESMainAppDelegate
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    // DISPARO SEGURO POSTERIOR: Garante a estabilização completa da janela gráfica do iOS
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    // Deléga a inicializacao síncrona do VFS em segundo plano mantendo a interface ativa em primeiro plano
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
         @autoreleasepool {
             try {
-                NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-                NSString *documentsDirectory = [paths firstObject];
+                NSArray *diretorios = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+                NSString *caminhoDocsApple = [diretorios firstObject];
                 
-                if (documentsDirectory) {
-                    std::string caminhoDocuments = [documentsDirectory UTF8String];
-                    std::string caminhoPastaPes = caminhoDocuments + "/pes";
-                    mkdir(caminhoPastaPes.c_str(), 0777);
-                    g_CaminhoJogoValido = caminhoPastaPes;
+                if (caminhoDocsApple) {
+                    std::string stringDocs = [caminhoDocsApple UTF8String];
+                    std::string subPastaPes = stringDocs + "/pes";
+                    
+                    // Força a criacao fisica da pasta publica visivel no app 'Arquivos'
+                    mkdir(subPastaPes.c_str(), 0777);
+                    g_CaminhoBaseDocumentos = subPastaPes;
                 }
                 
-                if (!g_MotorExecutando) {
-                    g_MotorExecutando = true;
-                    char* argv[] = { (char*)"pes17", nullptr };
-                    pes17::Run(1, argv);
+                if (!g_IniciadorAtivo) {
+                    g_IniciadorAtivo = true;
+                    char* argumentosFalsos[] = { (char*)"pes17", nullptr };
+                    pes17::Run(1, argumentosFalsos);
                 }
             } catch (...) {}
         }
@@ -95,28 +101,30 @@ namespace pes17 {
 }
 @end
 
+// Ponto de entrada nativo exportado para o main.cpp global
 extern "C" int inline_uikit_main(int argc, char* argv[]) {
     @autoreleasepool {
-        return UIApplicationMain(argc, argv, nil, NSStringFromClass([PESAppDelegate class]));
+        return UIApplicationMain(argc, argv, nil, NSStringFromClass([PESMainAppDelegate class]));
     }
 }
 
+// Abstracoes de Kernel exigidas pelas tabelas de recompilacao estatica do projeto
 namespace kernel {
     void Initialise(const std::filesystem::path& gameRoot) {
         if (!gameRoot.empty()) {
-            g_CaminhoJogoValido = gameRoot;
+            g_CaminhoBaseDocumentos = gameRoot;
         }
     }
     
     void Shutdown() {}
-    const std::filesystem::path& GameRoot() { return g_CaminhoJogoValido; }
+    const std::filesystem::path& GameRoot() { return g_CaminhoBaseDocumentos; }
     
-    // Alocação heap isolada reduzida protegida contra verificadores estáticos do Kernel da Apple
+    // Alocação heap dinamicamente isolada para passar limpa pelas tabelas do Trustd sem JIT
     uint32_t ToPhysical(unsigned int a) { 
-        static std::vector<uint8_t>* g_MesaVirtualXbox = new std::vector<uint8_t>(256 * 1024, 0);
-        uintptr_t basePtr = (uintptr_t)g_MesaVirtualXbox->data();
-        uintptr_t offset = a % (256 * 1024);
-        return (uint32_t)(basePtr + offset);
+        static std::vector<uint8_t>* bufferSeguroXbox = new std::vector<uint8_t>(512 * 1024, 0);
+        uintptr_t baseEndereco = (uintptr_t)bufferSeguroXbox->data();
+        uintptr_t deslocamentoRelative = a % (512 * 1024);
+        return (uint32_t)(baseEndereco + deslocamentoRelative);
     }
     
     uint32_t FromPhysical(unsigned int p) { return 0; }
@@ -141,6 +149,6 @@ namespace kernel {
     void MovePlayerData(uint64_t a, uint64_t b, uint64_t c) {}
     void QueueUserApc(unsigned int a, unsigned int b, unsigned int c) {}
     
-    DelayCounts g_fallbackDelay;
-    DelayCounts& ThreadDelays() { return g_fallbackDelay; }
+    DelayCounts temporizadorFallback;
+    DelayCounts& ThreadDelays() { return temporizadorFallback; }
 }
