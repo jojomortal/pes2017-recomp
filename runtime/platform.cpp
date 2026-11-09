@@ -55,7 +55,7 @@ bool platform::IsMainThread() { return GetCurrentThreadId() == g_mainThread; }
 
 void platform::SetThreadName(const char* name)
 {
-    wchar_t wide[64];
+    wchar_t wide;
     const int n = MultiByteToWideChar(CP_UTF8, 0, name, -1, wide, 64);
     if (n <= 0) return;
     using SetDescription = HRESULT(WINAPI*)(HANDLE, PCWSTR);
@@ -90,7 +90,7 @@ void platform::SetThreadAffinity(ThreadAffinityRole role)
 
 void platform::PrintBacktrace(const char* why)
 {
-    void* frames[64];
+    void* frames;
     const USHORT n = CaptureStackBackTrace(0, 64, frames, nullptr);
     const auto module = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     std::fprintf(stderr, "\n[E] ---- %s (%u frames) ----\n", why, unsigned(n));
@@ -156,8 +156,9 @@ void platform::Initialise()
 {
 #if defined(__APPLE__)
     g_appleMainThread = pthread_self();
-    std::printf("[iOS platform] Inicializando ambiente Apple Core Foundation.\n");
+    std::printf("[iOS platform] Ignorando checagens de kernel nativas para a Sandbox.\n");
     
+    // Bloqueia tentativas de leitura de ambiente ou sysctl de desktop no chip da Apple
     setenv("PES17_DISABLE_SYSCTL_CHECK", "1", 1);
 #endif
 }
@@ -175,7 +176,7 @@ void platform::SetThreadName(const char* name)
 #if defined(__APPLE__)
     pthread_setname_np(name);
 #else
-    char shortName[16];
+    char shortName;
     std::snprintf(shortName, sizeof shortName, "%s", name);
     pthread_setname_np(pthread_self(), shortName);
 #endif
@@ -198,7 +199,7 @@ void platform::SetThreadAffinity(ThreadAffinityRole role) {}
 void platform::PrintBacktrace(const char* why)
 {
 #if !defined(__ANDROID__) && !defined(__APPLE__)
-    void* frames[64];
+    void* frames;
     int n = backtrace(frames, 64);
     std::fprintf(stderr, "\n[E] ---- %s (%d frames) ----\n", why, n);
     backtrace_symbols_fd(frames, n, STDERR_FILENO);
@@ -244,7 +245,6 @@ void* platform::OpenLibrary(const char* path) { return dlopen(path, RTLD_NOW | R
 void* platform::LoadedLibrary(const char* name) { return dlopen(nullptr, RTLD_NOW | RTLD_LOCAL); }
 void* platform::Symbol(void* library, const char* name) { return dlsym(library, name); }
 
-// Envelopamento correto do namespace exigido pelo compilador Apple para a condicional POSIX
 namespace platform {
     bool IsDebuggerPresent() { return false; }
 }
