@@ -4,20 +4,20 @@
 
 namespace env {
 
-    // Retorna valores seguros mockados para o ambiente mobile (Clean Room Design)
-    inline const char* Text(const char* name, const char* fallback = nullptr) {
-        return fallback;
+    // Retorna valores fixos e limpos para o iOS passar direto pela largada sem JIT ou sysctl
+    inline const char* Text(const char* name) {
+        return nullptr;
     }
 
-    inline double Real(const char* name, double fallback = 0.0) {
-        return fallback;
+    inline double Real(const char* name) {
+        return 0.0;
     }
 
-    inline long long Number(const char* name, long long fallback = 0LL) {
-        return fallback;
+    inline long long Number(const char* name) {
+        return 0LL;
     }
 
-    inline bool Flag(const char* name, bool fallback = false) {
-        return fallback;
+    inline bool Flag(const char* name) {
+        return false;
     }
 }
