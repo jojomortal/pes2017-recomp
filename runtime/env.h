@@ -1,23 +1,13 @@
 #pragma once
 
-#include <cstdlib>
+#include <cstdio>
+#include "env.h" // CORREÇÃO CIRÚRGICA: Fornece a declaração do namespace env exigida pelo motor
 
-namespace env {
+#define LOGI(...) do { std::printf("[INFO] " __VA_ARGS__); std::printf("\n"); } while(0)
+#define LOGW(...) do { std::printf("[WARN] " __VA_ARGS__); std::printf("\n"); } while(0)
+#define LOGE(...) do { std::printf("[ERROR] " __VA_ARGS__); std::printf("\n"); } while(0)
 
-    // Retorna valores fixos e limpos para o iOS passar direto pela largada sem JIT ou sysctl
-    inline const char* Text(const char* name) {
-        return nullptr;
-    }
-
-    inline double Real(const char* name) {
-        return 0.0;
-    }
-
-    inline long long Number(const char* name) {
-        return 0LL;
-    }
-
-    inline bool Flag(const char* name) {
-        return false;
-    }
+namespace log_system {
+    inline void Initialise() {}
+    inline void Shutdown() {}
 }
