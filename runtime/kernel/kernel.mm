@@ -7,7 +7,7 @@
 #include <thread>
 #include <vector>
 
-// Frameworks graficos e de sistema homologados para aplicacoes nativas iOS
+// Frameworks gráficos e de sistema homologados para aplicações nativas iOS
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <QuartzCore/CAMetalLayer.h>
@@ -19,6 +19,26 @@
 #include <unistd.h>
 #include <sys/sysctl.h>
 #include <dlfcn.h>
+
+// MACRO DE INTERPOSIÇÃO DE DYLD (ESTRATÉGIA DO GABARITO PÚBLICO MÓVEL)
+#if defined(__APPLE__)
+#define DYLD_INTERPOSE(_replacement,_replacee) \
+   __attribute__((used)) static struct{ const void* replacement; const void* replacee; } _interpose_##_replacee \
+   __attribute__ ((section("__DATA,__interpose"))) = { (const void*)(unsigned long)&_replacement, (const void*)(unsigned long)&_replacee };
+
+// Implementações stub que interceptam requisições profundas de sistema do iOS
+static int my_sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen) {
+    if (oldlenp) *oldlenp = 0;
+    return 0;
+}
+DYLD_INTERPOSE(my_sysctl, sysctl);
+
+static int my_sysctlbyname(const char *name, void *oldp, size_t *oldlenp, void *newp, size_t newlen) {
+    if (oldlenp) *oldlenp = 0;
+    return 0;
+}
+DYLD_INTERPOSE(my_sysctlbyname, sysctlbyname);
+#endif
 
 static std::filesystem::path g_CaminhoBaseDocumentos;
 static bool g_IniciadorAtivo = false;
@@ -81,7 +101,7 @@ namespace pes17 {
                 std::string stringDocs = [caminhoDocsApple UTF8String];
                 std::string subPastaPes = stringDocs + "/pes";
                 
-                // CRIAÇÃO PASTA NO LAUNCH: Estabelece o Sandbox do jogo de forma imediata
+                // Força a criação imediata da Sandbox pública visível
                 mkdir(subPastaPes.c_str(), 0777);
                 g_CaminhoBaseDocumentos = subPastaPes;
             }
