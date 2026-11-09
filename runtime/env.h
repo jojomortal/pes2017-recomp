@@ -4,23 +4,20 @@
 
 namespace env {
 
-    // Abstrações móveis estáveis baseadas diretamente no gabarito público para iOS
-    inline const char* Text(const char* name) {
-        return nullptr;
+    // Retorna valores seguros mockados suportando argumentos de fallback (Clean Room Design)
+    inline const char* Text(const char* name, const char* fallback = nullptr) {
+        return fallback;
     }
 
-    inline double Real(const char* name) {
-        return 0.0;
+    inline double Real(const char* name, double fallback = 0.0) {
+        return fallback;
     }
 
-    inline long long Number(const char* name) {
-        return 0LL;
+    inline long long Number(const char* name, long long fallback = 0LL) {
+        return fallback;
     }
 
-    inline bool Flag(const char* name) {
-        return false;
+    inline bool Flag(const char* name, bool fallback = false) {
+        return fallback;
     }
 }
-
-// Garante o mapeamento global do namespace para o console.cpp e o sistema de telemetria
-using namespace env;
