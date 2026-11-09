@@ -7,7 +7,7 @@
 #include <thread>
 #include <vector>
 
-// Frameworks gráficos e de sistema homologados para aplicações nativas iOS
+// Frameworks graficos e de sistema homologados para aplicacoes nativas iOS
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <QuartzCore/CAMetalLayer.h>
@@ -18,21 +18,21 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/sysctl.h>
+#include <dlfcn.h>
 
-// BYPASS DE ENGENHARIA REVERSA DEFINITIVO (LOG 14)
-// Intercepta e neutraliza as chamadas sysctl estáticas do motor antes que elas batam no Kernel da Apple
+// INJEÇÃO ESTÁTICA EXCLUSIVA (GABARITO RECOMP IOS): Intercepta chamadas de hardware profundas de todas as dylibs
 extern "C" int sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen) {
     if (oldlenp) {
-        *oldlenp = 0; // Retorna tamanho vazio seguro simulado
+        *oldlenp = 0; 
     }
-    return 0; // Retorna sucesso falso imediatamente, silenciando leituras de kern.bootargs e impedindo o crash
+    return 0; 
 }
 
 extern "C" int sysctlbyname(const char *name, void *oldp, size_t *oldlenp, void *newp, size_t newlen) {
     if (oldlenp) {
         *oldlenp = 0;
     }
-    return 0; // Neutraliza leituras de hardware de desktop na Sandbox móvel
+    return 0; 
 }
 
 static std::filesystem::path g_CaminhoBaseDocumentos;
@@ -42,7 +42,6 @@ namespace pes17 {
     int Run(int argc, char** argv);
 }
 
-// Interface do Controlador de Tela Nativo em Objective-C++
 @interface PESMainViewController : UIViewController
 @end
 
@@ -70,7 +69,6 @@ namespace pes17 {
 }
 @end
 
-// Delegado de Cena obrigatório para conformidade visual com o iOS
 @interface PESMainSceneDelegate : UIResponder <UIWindowSceneDelegate>
 @property (strong, nonatomic) UIWindow *window;
 @end
@@ -84,48 +82,47 @@ namespace pes17 {
 }
 @end
 
-// Delegado Principal da Aplicação responsável pelo bypass de Sandbox
 @interface PESMainAppDelegate : UIResponder <UIApplicationDelegate>
 @end
 
 @implementation PESMainAppDelegate
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    // Delega a inicialização assíncrona do VFS em segundo plano mantendo a interface ativa em primeiro plano
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-        @autoreleasepool {
-            try {
-                NSArray *diretorios = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-                NSString *caminhoDocsApple = [diretorios firstObject];
+    @autoreleasepool {
+        try {
+            NSArray *diretorios = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+            NSString *caminhoDocsApple = [diretorios firstObject];
+            
+            if (caminhoDocsApple) {
+                std::string stringDocs = [caminhoDocsApple UTF8String];
+                std::string subPastaPes = stringDocs + "/pes";
                 
-                if (caminhoDocsApple) {
-                    std::string stringDocs = [caminhoDocsApple UTF8String];
-                    std::string subPastaPes = stringDocs + "/pes";
-                    
-                    // Força a criação física da pasta pública visível no app 'Arquivos'
-                    mkdir(subPastaPes.c_str(), 0777);
-                    g_CaminhoBaseDocumentos = subPastaPes;
-                }
-                
-                if (!g_IniciadorAtivo) {
-                    g_IniciadorAtivo = true;
-                    char* argumentosFalsos[] = { (char*)"pes17", nullptr };
-                    pes17::Run(1, argumentosFalsos);
-                }
-            } catch (...) {}
-        }
-    });
+                // CRIAÇÃO IMEDIATA DA PASTA NO LAUNCH: Cria o Sandbox antes de instanciar a thread paralela
+                mkdir(subPastaPes.c_str(), 0777);
+                g_CaminhoBaseDocumentos = subPastaPes;
+            }
+            
+            if (!g_IniciadorAtivo) {
+                g_IniciadorAtivo = true;
+                std::thread threadMotor([]() {
+                    try {
+                        char* argumentosFalsos[] = { (char*)"pes17", nullptr };
+                        pes17::Run(1, argumentosFalsos);
+                    } catch (...) {}
+                });
+                threadMotor.detach();
+            }
+        } catch (...) {}
+    }
     return YES;
 }
 @end
 
-// Ponto de entrada nativo exportado para o main.cpp global
 extern "C" int inline_uikit_main(int argc, char* argv[]) {
     @autoreleasepool {
         return UIApplicationMain(argc, argv, nil, NSStringFromClass([PESMainAppDelegate class]));
     }
 }
 
-// Abstrações de Kernel exigidas pelas tabelas de recompilação estática do projeto
 namespace kernel {
     void Initialise(const std::filesystem::path& gameRoot) {
         if (!gameRoot.empty()) {
@@ -136,7 +133,6 @@ namespace kernel {
     void Shutdown() {}
     const std::filesystem::path& GameRoot() { return g_CaminhoBaseDocumentos; }
     
-    // Alocação heap dinamicamente isolada para passar limpa pelas tabelas do Trustd sem JIT
     uint32_t ToPhysical(unsigned int a) { 
         static std::vector<uint8_t>* bufferSeguroXbox = new std::vector<uint8_t>(512 * 1024, 0);
         uintptr_t baseEndereco = (uintptr_t)bufferSeguroXbox->data();
