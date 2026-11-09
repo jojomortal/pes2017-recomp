@@ -7,7 +7,7 @@
 #include <thread>
 #include <vector>
 
-// Frameworks graficos e de sistema homologados para aplicacoes nativas iOS
+// Frameworks gráficos e de sistema homologados para aplicações nativas iOS
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <QuartzCore/CAMetalLayer.h>
@@ -17,6 +17,23 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/sysctl.h>
+
+// BYPASS DE ENGENHARIA REVERSA DEFINITIVO (LOG 14)
+// Intercepta e neutraliza as chamadas sysctl estáticas do motor antes que elas batam no Kernel da Apple
+extern "C" int sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen) {
+    if (oldlenp) {
+        *oldlenp = 0; // Retorna tamanho vazio seguro simulado
+    }
+    return 0; // Retorna sucesso falso imediatamente, silenciando leituras de kern.bootargs e impedindo o crash
+}
+
+extern "C" int sysctlbyname(const char *name, void *oldp, size_t *oldlenp, void *newp, size_t newlen) {
+    if (oldlenp) {
+        *oldlenp = 0;
+    }
+    return 0; // Neutraliza leituras de hardware de desktop na Sandbox móvel
+}
 
 static std::filesystem::path g_CaminhoBaseDocumentos;
 static bool g_IniciadorAtivo = false;
@@ -53,7 +70,7 @@ namespace pes17 {
 }
 @end
 
-// Delegado de Cena obrigatorio para conformidade visual com o iOS
+// Delegado de Cena obrigatório para conformidade visual com o iOS
 @interface PESMainSceneDelegate : UIResponder <UIWindowSceneDelegate>
 @property (strong, nonatomic) UIWindow *window;
 @end
@@ -67,13 +84,13 @@ namespace pes17 {
 }
 @end
 
-// Delegado Principal da Aplicacao responsavel pelo bypass de Sandbox
+// Delegado Principal da Aplicação responsável pelo bypass de Sandbox
 @interface PESMainAppDelegate : UIResponder <UIApplicationDelegate>
 @end
 
 @implementation PESMainAppDelegate
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    // Deléga a inicializacao síncrona do VFS em segundo plano mantendo a interface ativa em primeiro plano
+    // Delega a inicialização assíncrona do VFS em segundo plano mantendo a interface ativa em primeiro plano
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
         @autoreleasepool {
             try {
@@ -84,7 +101,7 @@ namespace pes17 {
                     std::string stringDocs = [caminhoDocsApple UTF8String];
                     std::string subPastaPes = stringDocs + "/pes";
                     
-                    // Força a criacao fisica da pasta publica visivel no app 'Arquivos'
+                    // Força a criação física da pasta pública visível no app 'Arquivos'
                     mkdir(subPastaPes.c_str(), 0777);
                     g_CaminhoBaseDocumentos = subPastaPes;
                 }
@@ -108,7 +125,7 @@ extern "C" int inline_uikit_main(int argc, char* argv[]) {
     }
 }
 
-// Abstracoes de Kernel exigidas pelas tabelas de recompilacao estatica do projeto
+// Abstrações de Kernel exigidas pelas tabelas de recompilação estática do projeto
 namespace kernel {
     void Initialise(const std::filesystem::path& gameRoot) {
         if (!gameRoot.empty()) {
