@@ -51,8 +51,8 @@ if(APPLE)
     )
 endif()
 
-# CORREÇÃO DEFINITIVA DE EXECUTÁVEL GRÁFICO (EVITA FECHAMENTO NO CLIQUE)
-# Força o CMake a gerar o binário envelopado com a estrutura de App Bundle (MACOSX_BUNDLE) exigida pelo iOS
+# CONVERSÃO CIRÚRGICA PARA EXECUTÁVEL GRÁFICO PURO DO IOS:
+# Removemos as diretivas Info.plist e ios.entitlements estáticas do CMake que quebravam a tabela de assinaturas do Sideloadly
 add_executable(pes17 MACOSX_BUNDLE 
     ${RUNTIME_SOURCES} 
     "${CMAKE_SOURCE_DIR}/runtime/kernel/kernel.mm" 
@@ -74,13 +74,11 @@ target_link_libraries(pes17 PRIVATE
 if(APPLE)
     target_link_options(pes17 PRIVATE "-Wl,-undefined,dynamic_lookup")
     
-    # Amarra os identificadores corretos para validação do Trustd da Apple
+    # Define as propriedades essenciais de App Bundle sem injetar caminhos de compilação estáticos conflitantes
     set_target_properties(pes17 PROPERTIES
         MACOSX_BUNDLE_BUNDLE_IDENTIFIER "com.jojomortal.pes2017recomp"
         MACOSX_BUNDLE_BUNDLE_NAME "PES17"
         MACOSX_BUNDLE_GUI_IDENTIFIER "com.jojomortal.pes2017recomp"
-        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/runtime/Info.plist"
-        XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "runtime/ios.entitlements"
         XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.jojomortal.pes2017recomp"
     )
 endif()
